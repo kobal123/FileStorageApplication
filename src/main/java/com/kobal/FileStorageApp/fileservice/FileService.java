@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public interface FileService {
 
@@ -13,7 +12,7 @@ public interface FileService {
     void uploadFile(String username, Path path, InputStream file);
 
     void createDirectory(String username, Path directoryPath);
-    Stream<String> loadFileNamesFromDirectory(Path directoryPath);
+    List<File> getFilesinDirectory(String username, Path path);
     void deleteFileByName(String username, String filename);
 
     void deleteFilesInDirectory(String username, Path directory, List<Path> files);
