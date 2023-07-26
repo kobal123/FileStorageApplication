@@ -4,13 +4,14 @@ import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
 public class FileSystemFileService implements FileService {
 
     private final int BUFFER_READ_SIZE = 8 * 1024;
@@ -34,7 +35,7 @@ public class FileSystemFileService implements FileService {
 
         validateDirectory(filePath.getParent());
         File file = filePath.toFile();
-        boolean wasCreated = false;
+        boolean wasCreated;
         try {
             wasCreated = file.createNewFile();
         } catch (IOException ignored) {

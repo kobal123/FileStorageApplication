@@ -1,20 +1,34 @@
 package com.kobal.FileStorageApp;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.TimeZone;
 
-@Entity
 public class FileMetaData {
 
-    @Id
-    @GeneratedValue
-    private Long id;
+    private final String name;
+    private final Long size;
+    private final LocalDateTime modified;
 
-    private String path;
-    private String name;
-    private Long size;
-    private Long modified;
-    private Long created;
+    public FileMetaData(String name, Long size, Long modified) {
+        this.name = name;
+        this.size = size;
+        this.modified = LocalDateTime.ofInstant(Instant.ofEpochMilli(modified),
+                        TimeZone.getDefault().toZoneId());
+    }
+
+
+    public String getName() {
+        return name;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    public LocalDateTime getModified() {
+        return modified;
+    }
+
 }
