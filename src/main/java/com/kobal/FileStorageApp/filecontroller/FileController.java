@@ -5,9 +5,12 @@ import com.kobal.FileStorageApp.FileMetaData;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -33,11 +36,17 @@ public class FileController {
     }
 
 
-    @PostMapping("upload")
-    void uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFile, HttpServletRequest request) throws IOException {
+    @PostMapping("/upload/**")
+    void uploadFile(Principal principal, @RequestParam("file") MultipartFile[] multipartFiles, HttpServletRequest request) {
         Path path = getPath(request);
-
-        fileService.uploadFile(principal.getName(), path, multipartFile.getInputStream());
+        for (MultipartFile multipartFile : multipartFiles) {
+            Path filePath = path.resolve(multipartFile.getOriginalFilename());
+            try {
+                fileService.uploadFile(principal.getName(), filePath, multipartFile.getInputStream());
+            } catch (UserFileException | IOException exception) {
+                //TODO: throw custom exception
+            }
+        }
     }
 
     @GetMapping("/home/**")
@@ -50,6 +59,7 @@ public class FileController {
                 .toList();
 
         model.addAttribute("files", files);
+        model.addAttribute("uploadURL", Path.of("upload").resolve(path));
         return "index";
     }
 

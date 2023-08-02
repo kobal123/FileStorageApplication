@@ -43,16 +43,17 @@ public class FileSystemFileService implements FileService {
         }
 
         if (!wasCreated)
-            throw new RuntimeException("There was an error creating the file");
+            throw new UserFileException("There was an error creating the file");
 
-        try (FileOutputStream fileOutputStream = new FileOutputStream(path.toFile())) {
+        try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
             byte[] buffer = new byte[BUFFER_READ_SIZE];
             int bytesRead;
             while ((bytesRead = fileInputStream.read(buffer)) != -1) {
                 fileOutputStream.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
-            throw new RuntimeException("There was an error creating the file");
+            file.delete();
+            throw new UserFileException("There was an error creating the file");
         }
     }
 
