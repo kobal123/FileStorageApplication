@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,19 +36,27 @@ public class FileController {
     public FileController(FileService fileService) {
         this.fileService = fileService;
     }
-
+    @GetMapping("")
+    String redirectToHome() {
+        return "redirect:/home";
+    }
 
     @PostMapping("/upload/**")
-    void uploadFile(Principal principal, @RequestParam("file") MultipartFile[] multipartFiles, HttpServletRequest request) {
+    String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFiles, HttpServletRequest request, Model model) {
         Path path = getPath(request);
-        for (MultipartFile multipartFile : multipartFiles) {
-            Path filePath = path.resolve(multipartFile.getOriginalFilename());
-            try {
-                fileService.uploadFile(principal.getName(), filePath, multipartFile.getInputStream());
-            } catch (UserFileException | IOException exception) {
-                //TODO: throw custom exception
-            }
+        List<FileMetaData> addedFiles = new ArrayList<>();
+        String fileName = multipartFiles.getOriginalFilename();
+        Path filePath = path.resolve(fileName);
+        try {
+            fileService.uploadFile(principal.getName(), filePath, multipartFiles.getInputStream());
+            addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli()));
+
+        } catch (IOException exception) {
+            throw new UserFileException("Error uploading file");
         }
+
+        model.addAttribute("files", addedFiles);
+        return "fragments/file-table-row :: table-row";
     }
 
     @GetMapping("/home/**")
