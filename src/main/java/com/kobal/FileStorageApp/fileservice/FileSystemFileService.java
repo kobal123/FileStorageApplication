@@ -1,9 +1,9 @@
 package com.kobal.FileStorageApp.fileservice;
 
+import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -30,8 +30,8 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public void uploadFile(String username, Path path, InputStream fileInputStream) {
-        Path filePath = BASE_PATH.resolve(username).resolve(path);
+    public void uploadFile(String username, Path uploadFilePath, InputStream fileInputStream) {
+        Path filePath = BASE_PATH.resolve(username).resolve(uploadFilePath);
 
         validateDirectory(filePath.getParent());
         File file = filePath.toFile();
@@ -77,11 +77,8 @@ public class FileSystemFileService implements FileService {
         if (files == null)
             throw new UserFileNotFoundException("file was not a directory");
 
-
         return List.of(files);
     }
-
-
 
     @Override
     public void deleteFileByName(String username, String filename) {
@@ -98,7 +95,6 @@ public class FileSystemFileService implements FileService {
 
     }
 
-
     private void validateDirectory(Path directoryPath) {
         File directory = directoryPath.toFile();
         if (!directory.exists()) {
@@ -106,7 +102,8 @@ public class FileSystemFileService implements FileService {
         }
 
         if (!directory.isDirectory()) {
-            throw new UserFileNotFoundException("file was not a directory");
+            throw new UserFileBadRequestException("File is not a directory");
+
         }
     }
 }
