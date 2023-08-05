@@ -2,6 +2,7 @@ package com.kobal.FileStorageApp.filecontroller;
 
 
 import com.kobal.FileStorageApp.FileMetaData;
+import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,19 +37,47 @@ public class FileController {
     public FileController(FileService fileService) {
         this.fileService = fileService;
     }
-
+    @GetMapping("")
+    String redirectToHome() {
+        return "redirect:/home";
+    }
 
     @PostMapping("/upload/**")
-    void uploadFile(Principal principal, @RequestParam("file") MultipartFile[] multipartFiles, HttpServletRequest request) {
+    String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFiles, HttpServletRequest request, Model model) {
         Path path = getPath(request);
-        for (MultipartFile multipartFile : multipartFiles) {
-            Path filePath = path.resolve(multipartFile.getOriginalFilename());
-            try {
-                fileService.uploadFile(principal.getName(), filePath, multipartFile.getInputStream());
-            } catch (UserFileException | IOException exception) {
-                //TODO: throw custom exception
-            }
+        List<FileMetaData> addedFiles = new ArrayList<>();
+        String fileName = multipartFiles.getOriginalFilename();
+
+        if (fileName == null) {
+            throw new UserFileBadRequestException("Bad file name");
         }
+
+        Path filePath = path.resolve(fileName);
+
+        try {
+            fileService.uploadFile(principal.getName(), filePath, multipartFiles.getInputStream());
+            addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli(), false));
+
+        } catch (IOException exception) {
+            throw new UserFileException("Error uploading file");
+        }
+
+        model.addAttribute("files", addedFiles);
+        return "fragments/file-table-row :: table-row";
+    }
+
+    @GetMapping("/folder/**")
+    String folderTable(Principal principal, Model model, HttpServletRequest request) {
+        Path path = getPath(request);
+
+        List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
+                .stream()
+                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
+                .toList();
+
+        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+        model.addAttribute("files", files);
+        return "fragments/file-table :: file-table";
     }
 
     @GetMapping("/home/**")
@@ -55,10 +86,12 @@ public class FileController {
 
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
                 .stream()
-                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified()))
+                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
 
         model.addAttribute("files", files);
+        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+
         model.addAttribute("uploadURL", Path.of("upload").resolve(path));
         return "index";
     }

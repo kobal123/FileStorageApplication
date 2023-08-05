@@ -1,12 +1,15 @@
 package com.kobal.FileStorageApp.fileservice;
 
+import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileSystemUtils;
 
 import java.io.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -30,8 +33,8 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public void uploadFile(String username, Path path, InputStream fileInputStream) {
-        Path filePath = BASE_PATH.resolve(username).resolve(path);
+    public void uploadFile(String username, Path uploadFilePath, InputStream fileInputStream) {
+        Path filePath = BASE_PATH.resolve(username).resolve(uploadFilePath);
 
         validateDirectory(filePath.getParent());
         File file = filePath.toFile();
@@ -77,11 +80,8 @@ public class FileSystemFileService implements FileService {
         if (files == null)
             throw new UserFileNotFoundException("file was not a directory");
 
-
         return List.of(files);
     }
-
-
 
     @Override
     public void deleteFileByName(String username, String filename) {
@@ -90,7 +90,7 @@ public class FileSystemFileService implements FileService {
 
     @Override
     public void deleteFilesInDirectory(String username, Path directoryPath, List<Path> files) {
-        File directory = new File(directoryPath.toUri());
+
     }
 
     @Override
@@ -98,15 +98,14 @@ public class FileSystemFileService implements FileService {
 
     }
 
-
     private void validateDirectory(Path directoryPath) {
         File directory = directoryPath.toFile();
         if (!directory.exists()) {
-            throw new UserFileNotFoundException("File not found");
+            throw new UserFileNotFoundException("Directory not found");
         }
-
         if (!directory.isDirectory()) {
-            throw new UserFileNotFoundException("file was not a directory");
+            throw new UserFileBadRequestException("File is not a directory");
+
         }
     }
 }

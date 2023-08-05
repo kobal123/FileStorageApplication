@@ -10,12 +10,16 @@ public class FileMetaData {
     private final String name;
     private final Long size;
     private final LocalDateTime modified;
+    private final boolean isDirectory;
 
-    public FileMetaData(String name, Long size, Long modified) {
+
+    public FileMetaData(String name, Long size, Long modified, boolean isDirectory) {
         this.name = name;
         this.size = size;
         this.modified = LocalDateTime.ofInstant(Instant.ofEpochMilli(modified),
                         TimeZone.getDefault().toZoneId());
+
+        this.isDirectory = isDirectory;
     }
 
 
