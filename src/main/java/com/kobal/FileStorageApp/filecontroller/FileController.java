@@ -2,6 +2,7 @@ package com.kobal.FileStorageApp.filecontroller;
 
 
 import com.kobal.FileStorageApp.FileMetaData;
+import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,10 +47,16 @@ public class FileController {
         Path path = getPath(request);
         List<FileMetaData> addedFiles = new ArrayList<>();
         String fileName = multipartFiles.getOriginalFilename();
+
+        if (fileName == null) {
+            throw new UserFileBadRequestException("Bad file name");
+        }
+
         Path filePath = path.resolve(fileName);
+
         try {
             fileService.uploadFile(principal.getName(), filePath, multipartFiles.getInputStream());
-            addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli()));
+            addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli(), false));
 
         } catch (IOException exception) {
             throw new UserFileException("Error uploading file");
@@ -59,16 +66,32 @@ public class FileController {
         return "fragments/file-table-row :: table-row";
     }
 
+    @GetMapping("/folder/**")
+    String folderTable(Principal principal, Model model, HttpServletRequest request) {
+        Path path = getPath(request);
+
+        List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
+                .stream()
+                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
+                .toList();
+
+        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+        model.addAttribute("files", files);
+        return "fragments/file-table :: file-table";
+    }
+
     @GetMapping("/home/**")
     String index(Principal principal, Model model, HttpServletRequest request) {
         Path path = getPath(request);
 
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
                 .stream()
-                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified()))
+                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
 
         model.addAttribute("files", files);
+        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+
         model.addAttribute("uploadURL", Path.of("upload").resolve(path));
         return "index";
     }
