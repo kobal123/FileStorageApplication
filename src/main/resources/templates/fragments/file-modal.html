@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+        <html lang="en" xmlns:th="http://www.thymeleaf.org">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="./file-modal.css">
+            
+            <style>
+a,
+button,
+input,
+select, h1,
+h2,
+h3,
+h4,
+h5,
+* {
+margin: 0;
+padding: 0;
+border: none;
+text-decoration: none;
+appearance: none;
+background: none;
+}
+</style>
+            <title>Document</title>
+        </head>
+        <body>
+            <!-- props: {"type":{"type":"VARIANT","defaultValue":"'section'","variantOptions":["List","Section"]},"style":{"type":"VARIANT","defaultValue":"'solid'","variantOptions":["Light","Solid"]},"states":{"type":"VARIANT","defaultValue":"'primary'","variantOptions":["Error","Primary","Secondary","Success"]}} -->
+<dialog id="file-modal" th:fragment="file-modal">
+  <div   class="type-section-style-solid-states-primary">
+
+    <div class="sec-1">
+      <div class="list-1">
+        <button class="left">
+          <div class="icon-holder">
+            <svg
+              class="feather-icons-fi-file-plus"
+              width="21"
+              height="21"
+              viewBox="0 0 21 21"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M11.6675 1.66681H5.00029C4.55823 1.66681 4.13427 1.84242 3.82169 2.155C3.5091 2.46759 3.3335 2.89154 3.3335 3.3336V16.668C3.3335 17.11 3.5091 17.534 3.82169 17.8466C4.13427 18.1591 4.55823 18.3347 5.00029 18.3347H15.0011C15.4431 18.3347 15.8671 18.1591 16.1797 17.8466C16.4922 17.534 16.6678 17.11 16.6678 16.668V6.66719L11.6675 1.66681Z"
+                stroke="#00A3FF"
+                stroke-width="1.66678"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M10.0005 15.0019V10.0009"
+                stroke="#00A3FF"
+                stroke-width="1.66678"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M7.50049 12.5009H12.5015"
+                stroke="#00A3FF"
+                stroke-width="1.66678"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M11.6672 1.66681V6.66781H16.6682"
+                stroke="#00A3FF"
+                stroke-width="1.66678"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="content">
+            <div class="new-file">New file</div>
+          </div>
+        </button>
+      </div>
+      <div class="list-2">
+        <div class="left">
+          <div class="icon-holder">
+            <svg
+              class="feather-icons-fi-copy"
+              width="21"
+              height="21"
+              viewBox="0 0 21 21"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g clip-path="url(#clip0_109_594)">
+                <path
+                  d="M16.6679 7.50226H9.1673C8.24674 7.50226 7.50049 8.24851 7.50049 9.16907V16.6697C7.50049 17.5903 8.24674 18.3365 9.1673 18.3365H16.6679C17.5885 18.3365 18.3347 17.5903 18.3347 16.6697V9.16907C18.3347 8.24851 17.5885 7.50226 16.6679 7.50226Z"
+                  stroke="#00A3FF"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M4.16696 12.503H3.33356C2.89149 12.503 2.46753 12.3274 2.15495 12.0148C1.84236 11.7022 1.66675 11.2782 1.66675 10.8362V3.33551C1.66675 2.89345 1.84236 2.46949 2.15495 2.1569C2.46753 1.84431 2.89149 1.6687 3.33356 1.6687H10.8342C11.2763 1.6687 11.7002 1.84431 12.0128 2.1569C12.3254 2.46949 12.501 2.89345 12.501 3.33551V4.16892"
+                  stroke="#00A3FF"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_109_594">
+                  <rect
+                    width="20.0017"
+                    height="20.0017"
+                    fill="white"
+                    transform="translate(0 0.00170898)"
+                  />
+                </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <div class="content">
+            <div class="new-file">Copy file</div>
+          </div>
+        </div>
+      </div>
+      <div class="list-3">
+        <div class="left">
+          <div class="icon-holder">
+            <svg
+              class="feather-icons-fi-edit"
+              width="21"
+              height="21"
+              viewBox="0 0 21 21"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g clip-path="url(#clip0_109_110)">
+                <path
+                  d="M9.16732 3.33704H3.33354C2.89148 3.33704 2.46752 3.51264 2.15494 3.82523C1.84236 4.13781 1.66675 4.56177 1.66675 5.00383V16.6714C1.66675 17.1134 1.84236 17.5374 2.15494 17.85C2.46752 18.1626 2.89148 18.3382 3.33354 18.3382H15.0011C15.4432 18.3382 15.8671 18.1626 16.1797 17.85C16.4923 17.5374 16.6679 17.1134 16.6679 16.6714V10.8376"
+                  stroke="#00A3FF"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M15.4177 2.08648C15.7493 1.75493 16.199 1.56866 16.6678 1.56866C17.1367 1.56866 17.5864 1.75493 17.918 2.08648C18.2495 2.41802 18.4358 2.8677 18.4358 3.33658C18.4358 3.80546 18.2495 4.25514 17.918 4.58669L10.0006 12.504L6.66699 13.3374L7.5004 10.0038L15.4177 2.08648Z"
+                  stroke="#00A3FF"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_109_110">
+                  <rect
+                    width="20.0017"
+                    height="20.0017"
+                    fill="white"
+                    transform="translate(0 0.00341797)"
+                  />
+                </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <div class="content">
+            <div class="new-file">Edit file</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-2">
+      <div class="delete-file">
+        <div class="left">
+          <div class="icon-holder">
+            <svg
+              class="feather-icons-fi-trash-2"
+              width="21"
+              height="21"
+              viewBox="0 0 21 21"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g clip-path="url(#clip0_109_272)">
+                <path
+                  d="M2.50024 5.00574H4.16704H17.5014"
+                  stroke="#FF1F00"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M6.66743 5.00558V3.33879C6.66743 2.89673 6.84304 2.47277 7.15562 2.16019C7.4682 1.84761 7.89216 1.672 8.33422 1.672H11.6678C12.1099 1.672 12.5338 1.84761 12.8464 2.16019C13.159 2.47277 13.3346 2.89673 13.3346 3.33879V5.00558M15.8348 5.00558V16.6731C15.8348 17.1152 15.6592 17.5392 15.3466 17.8517C15.034 18.1643 14.6101 18.3399 14.168 18.3399H5.83403C5.39197 18.3399 4.96801 18.1643 4.65543 17.8517C4.34284 17.5392 4.16724 17.1152 4.16724 16.6731V5.00558H15.8348Z"
+                  stroke="#FF1F00"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M11.6675 9.17267V14.1737"
+                  stroke="#FF1F00"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M8.33398 9.17267V14.1737"
+                  stroke="#FF1F00"
+                  stroke-width="1.66678"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_109_272">
+                  <rect
+                    width="20.0017"
+                    height="20.0017"
+                    fill="white"
+                    transform="translate(0 0.00512695)"
+                  />
+                </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <div class="content">
+            <div class="new-file">Delete File</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+        </body>
+        </html>
