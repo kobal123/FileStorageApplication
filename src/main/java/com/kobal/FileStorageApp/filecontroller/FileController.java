@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,6 +69,13 @@ public class FileController {
         model.addAttribute("files", addedFiles);
         return "fragments/file-table-row :: table-row";
     }
+    @DeleteMapping("/delete-files/**")
+    List<String> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
+        Path path = getPath(request);
+        fileService.deleteFilesInDirectory(principal.getName(), path, fileNames);
+        return Collections.emptyList();
+    }
+
 
     @GetMapping("/folder/**")
     String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
