@@ -6,6 +6,7 @@ import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,6 +22,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
@@ -67,21 +70,26 @@ public class FileController {
     }
 
     @GetMapping("/folder/**")
-    String folderTable(Principal principal, Model model, HttpServletRequest request) {
+    String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
         Path path = getPath(request);
 
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
-
-        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+        URI folder = new URIBuilder()
+                .appendPath("folder")
+                .appendPath(path.toString())
+                .build();
+        model.addAttribute("folderURL", folder);
         model.addAttribute("files", files);
+
+
         return "fragments/file-table :: file-table";
     }
 
     @GetMapping("/home/**")
-    String index(Principal principal, Model model, HttpServletRequest request) {
+    String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
         Path path = getPath(request);
 
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
@@ -90,9 +98,18 @@ public class FileController {
                 .toList();
 
         model.addAttribute("files", files);
-        model.addAttribute("folderURL", Path.of("folder").resolve(path));
+        URI folder = new URIBuilder()
+                .appendPath("folder")
+                .appendPath(path.toString())
+                .build();
 
-        model.addAttribute("uploadURL", Path.of("upload").resolve(path));
+        URI uploadURI = new URIBuilder()
+                .appendPath("upload")
+                .appendPath(path.toString())
+                .build();
+
+        model.addAttribute("folderURL", folder);
+        model.addAttribute("uploadURL", uploadURI);
         return "index";
     }
 

@@ -35,4 +35,9 @@ public class FileMetaData {
         return modified;
     }
 
+
+    public boolean isDirectory() {
+        return isDirectory;
+    }
+
 }
