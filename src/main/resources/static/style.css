@@ -186,6 +186,14 @@ input{
     width: 15%;
 }
 
+ #file-options-container{
+    color: wheat;
+    display: flexbox;
+    position: relative;
+    top: 100px;
+    left: 50px;
+ }
+
  .xd-file {color: #ffffff; text-align: left; font: 400 14px 'Poppins', sans-serif; position: absolute; left: 138.84px;top: 7px; width: 71.93px;}
  .documetns {width: 81px; height: 21px; position: absolute; left: 82px;top: 115px;}
  .documetns2 {color: #ffffff; text-align: left; font: 400 14px 'Poppins', sans-serif; position: absolute; left: 0px;top: 0px;}
