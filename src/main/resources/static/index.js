@@ -4,8 +4,10 @@ const uploadForm = document.getElementById('myformfileinput');
 const form = document.getElementById('uploadForm')
 const uploadURL = form.getAttribute("action");
 const completedCount = 0; // added for loadend scenario
-
+const fileModal = document.getElementById("file-modal");
 const token = document.querySelector("meta[name='_csrf']").getAttribute('content')
+const fileOptionsButton = document.getElementById("file-options");
+
 
 //$('#_csrf').attr('content');
 const header = document.querySelector("meta[name='_csrf_header']").getAttribute('content')
@@ -32,16 +34,39 @@ const header = document.querySelector("meta[name='_csrf_header']").getAttribute(
     });
 
 
-    htmx.on('#uploadForm', 'change', function(evt) {
-        console.log("FILES:");
-        console.log(uploadForm.files);
-        uploadFiles();
+    htmx.on('#uploadForm', 'change', uploadFiles);
+
+    htmx.on('#file-modal', 'click', e => {
+          const dialogDimensions = fileModal.getBoundingClientRect()
+          if (
+            e.clientX < dialogDimensions.left ||
+            e.clientX > dialogDimensions.right ||
+            e.clientY < dialogDimensions.top ||
+            e.clientY > dialogDimensions.bottom
+          ) {
+            fileModal.close();
+          }
+          console.log("FILE MODAL CLICKED");
     });
 
 
+    htmx.on("#file-options", 'click', e => {
+        fileModal.showModal();
+    });
 
+// Attach event handlers to file modifier buttons
+//htmx.findAll("delete-file-button");
+//const fileRename = htmx.findAll("");
+//const file = htmx.findAll("");
+//const fileDelete = htmx.find("");
 
-
+//Array.from(htmx.findAll(".directory"))
+//    .forEach(element => {
+//        console.log("setting element onclick")
+//        htmx.on(element, "click", event => {
+//            history.pushState("", "", window.location.href+"/"+element.innerText)
+//        });
+//    });
 
 function uploadFiles() {
     for (let i = 0; i < uploadForm.files.length; i++) {

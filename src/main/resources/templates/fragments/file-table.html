@@ -17,7 +17,7 @@
         <th>Size</th>
     </tr>
     </thead>
-    <tbody id="main-file-table-tbody">
+    <tbody id="main-file-table-tbody" th:fragment="file-table-body">
     <tr th:each="file: ${files}" >
         <td class="c-d">
             <input class="table-cell-checkbox" type="checkbox" name="myTextEditBox" value="checked" />
@@ -36,9 +36,11 @@
             <span  th:text="${file.getName()}"
                    hx-trigger='click'
                    hx-swap='outerhtml'
-                   th:attr="hx-get=${folderURL} + ${file.getName()}"
-
-                   hx-target="#main-file-table">somefile.txt</span>
+                   th:attr="hx-get=${folderURL + '/' + file.getName()}"
+                   th:classappend="${file.isDirectory() ? 'directory' : ''}"
+                   hx-target="#main-file-table"
+                   hx-push-url="true"
+            >somefile.txt</span>
         </td>
         <!-- <td th:text="${file.getName()}"></td> -->
         <td class="table-file-size" th:text="${file.getModified()}">200MB</td>
