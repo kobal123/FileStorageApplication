@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 
-import java.io.*;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,9 +92,7 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public void deleteFilesInDirectory(String username, Path directory, List<String> fileNames) {
-        if (fileNames.isEmpty())
-            return;
+    public List<String> deleteFilesInDirectory(String username, Path directory, List<String> fileNames) {
         Path directoryPath = BASE_PATH.resolve(username).resolve(directory);
         validateDirectory(directoryPath);
         List<Path> filesToDelete = fileNames.stream()
@@ -100,33 +100,54 @@ public class FileSystemFileService implements FileService {
                 .toList();
 
 
+        List<String> failedDeletion = new ArrayList<>();
 
-        try {
-                List<Path> directoriesToDelete = new ArrayList<>();
-                Files.walkFileTree(directoryPath, new SimpleFileVisitor<>() {
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        if (filesToDelete.contains(file))
-                            Files.delete(file);
-                        return FileVisitResult.CONTINUE;
-                    }
+        for (Path filePath : filesToDelete) {
+            File file = filePath.toFile();
 
-                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-
-                        // if a directory is deleted we have to recursively delete everything in it.
-                        // Files.delete does not work.
-                        if (filesToDelete.contains(dir))
-                            directoriesToDelete.add(dir);
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-                for (Path path : directoriesToDelete) {
-                    FileSystemUtils.deleteRecursively(path);
+            if (file.isDirectory()) {
+                boolean success = FileSystemUtils.deleteRecursively(file);
+                if (!success)
+                    failedDeletion.add(file.getName());
+            } else {
+                try {
+                    Files.delete(filePath);
+                } catch (IOException e) {
+                    failedDeletion.add(file.getName());
                 }
-
-        } catch (IOException e) {
-            throw new UserFileException("There was an error deleting the files");
+            }
         }
+        return failedDeletion;
 
+
+//        try {
+//                List<Path> directoriesToDelete = new ArrayList<>();
+//                Files.walkFileTree(directoryPath, new SimpleFileVisitor<>() {
+//                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+//                        if (filesToDelete.contains(file)) {
+//                            Files.delete(file);
+//                            successfullyDeleted.add(file.getFileName().toString());
+//                        }
+//
+//                        return FileVisitResult.CONTINUE;
+//                    }
+//
+//                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+//
+//                        // if a directory is deleted we have to recursively delete everything in it.
+//                        // Files.delete does not work.
+//                        if (filesToDelete.contains(dir))
+//                            directoriesToDelete.add(dir);
+//                        return FileVisitResult.CONTINUE;
+//                    }
+//                });
+//                for (Path path : directoriesToDelete) {
+//                    FileSystemUtils.deleteRecursively(path);
+//                }
+//
+//        } catch (IOException e) {
+//            throw new UserFileException("There was an error deleting the files");
+//        }
 
     }
 

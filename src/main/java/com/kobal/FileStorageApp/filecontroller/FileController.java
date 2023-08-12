@@ -69,13 +69,36 @@ public class FileController {
         model.addAttribute("files", addedFiles);
         return "fragments/file-table-row :: table-row";
     }
-    @DeleteMapping("/delete-files/**")
+    @DeleteMapping(value = "/delete-files/**", produces = MediaType.APPLICATION_JSON_VALUE)
     List<String> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
+        if (fileNames.isEmpty())
+            return Collections.emptyList();
+
         Path path = getPath(request);
-        fileService.deleteFilesInDirectory(principal.getName(), path, fileNames);
-        return Collections.emptyList();
+        List<String> failedDeletions = fileService.deleteFilesInDirectory(principal.getName(), path, fileNames);
+        return failedDeletions;
     }
 
+//    @PostMapping(value = "/move/**", produces = MediaType.APPLICATION_JSON_VALUE)
+//    List<String> move(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
+//        if (fileNames.isEmpty())
+//            return Collections.emptyList();
+//
+//        Path path = getPath(request);
+//        List<String> failedMove = fileService.moveFilesToDirectory(principal.getName(), path, fileNames);
+//        return failedMove;
+//    }
+//
+//
+//    @PutMapping(value = "/copy/**", produces = MediaType.APPLICATION_JSON_VALUE)
+//    List<String> copy(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
+//        if (fileNames.isEmpty())
+//            return Collections.emptyList();
+//
+//        Path path = getPath(request);
+//        List<String> failedCopy = fileService.copyFilesToDirectory(principal.getName(), path, fileNames);
+//        return failedCopy;
+//    }
 
     @GetMapping("/folder/**")
     String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
@@ -143,7 +166,6 @@ public class FileController {
 
         File file = optionalFile.get();
         StreamingResponseBody streamingResponseBody = outputStream -> Files.copy(file.toPath(), outputStream);
-
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getName());
         httpHeaders.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(file.length()));

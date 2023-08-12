@@ -15,7 +15,7 @@ public interface FileService {
     List<File> getFilesinDirectory(String username, Path path);
     void deleteFileByName(String username, String filename);
 
-    void deleteFilesInDirectory(String username, Path directory, List<String> files);
+    List<String> deleteFilesInDirectory(String username, Path directory, List<String> files);
 
     void deleteDirectoryByUsername(String username, Path directory);
 }
