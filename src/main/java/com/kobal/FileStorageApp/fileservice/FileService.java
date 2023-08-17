@@ -18,4 +18,8 @@ public interface FileService {
     List<String> deleteFilesInDirectory(String username, Path directory, List<String> files);
 
     void deleteDirectoryByUsername(String username, Path directory);
+
+    List<String> moveFilesToDirectory(String username, Path from, Path to, List<String> fileNames);
+
+    List<String> copyFilesToDirectory(String username, Path from, Path to, List<String> fileNames);
 }

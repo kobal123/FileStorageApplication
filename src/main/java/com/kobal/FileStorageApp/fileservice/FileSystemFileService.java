@@ -99,9 +99,7 @@ public class FileSystemFileService implements FileService {
                 .map(directoryPath::resolve)
                 .toList();
 
-
         List<String> failedDeletion = new ArrayList<>();
-
         for (Path filePath : filesToDelete) {
             File file = filePath.toFile();
 
@@ -118,42 +116,71 @@ public class FileSystemFileService implements FileService {
             }
         }
         return failedDeletion;
-
-
-//        try {
-//                List<Path> directoriesToDelete = new ArrayList<>();
-//                Files.walkFileTree(directoryPath, new SimpleFileVisitor<>() {
-//                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-//                        if (filesToDelete.contains(file)) {
-//                            Files.delete(file);
-//                            successfullyDeleted.add(file.getFileName().toString());
-//                        }
-//
-//                        return FileVisitResult.CONTINUE;
-//                    }
-//
-//                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-//
-//                        // if a directory is deleted we have to recursively delete everything in it.
-//                        // Files.delete does not work.
-//                        if (filesToDelete.contains(dir))
-//                            directoriesToDelete.add(dir);
-//                        return FileVisitResult.CONTINUE;
-//                    }
-//                });
-//                for (Path path : directoriesToDelete) {
-//                    FileSystemUtils.deleteRecursively(path);
-//                }
-//
-//        } catch (IOException e) {
-//            throw new UserFileException("There was an error deleting the files");
-//        }
-
     }
 
     @Override
     public void deleteDirectoryByUsername(String username, Path directory) {
 
+    }
+
+    @Override
+    public List<String> copyFilesToDirectory(String username, Path fromDirectory, Path toDirectory, List<String> fileNames) {
+        Path copyFrom = BASE_PATH.resolve(username).resolve(fromDirectory);
+        Path copyTo = BASE_PATH.resolve(username).resolve(toDirectory);
+        validateDirectory(copyFrom);
+        validateDirectory(copyTo);
+
+        List<FileMoveCopy> sourceAndDestination = fileNames.stream()
+                .map(s -> new FileMoveCopy(
+                        copyFrom.resolve(s),
+                        copyTo.resolve(s)
+                ))
+                .toList();
+
+        List<String> failedCopy = new ArrayList<>();
+
+        for (FileMoveCopy filePath : sourceAndDestination) {
+            File file = filePath.from.toFile();
+
+            if (file.isDirectory()) {
+                try {
+                    FileSystemUtils.copyRecursively(filePath.from, filePath.to);
+                } catch (IOException e) {
+                    failedCopy.add(file.getName());
+                }
+            } else {
+                try {
+                    Files.copy(filePath.from, filePath.to);
+                } catch (IOException e) {
+                    failedCopy.add(file.getName());
+                }
+            }
+        }
+        return failedCopy;
+    }
+
+    @Override
+    public List<String> moveFilesToDirectory(String username, Path fromDirectory, Path toDirectory, List<String> fileNames) {
+        Path moveFrom = BASE_PATH.resolve(username).resolve(fromDirectory);
+        Path moveTo = BASE_PATH.resolve(username).resolve(toDirectory);
+        validateDirectory(moveFrom);
+        validateDirectory(moveTo);
+
+        List<FileMoveCopy> sourceAndDestination = fileNames.stream()
+                .map(s -> new FileMoveCopy(
+                        moveFrom.resolve(s),
+                        moveTo.resolve(s)
+                )).toList();
+
+        List<String> failedCopy = new ArrayList<>();
+        for (FileMoveCopy filePath : sourceAndDestination) {
+            try {
+                Files.move(filePath.from, filePath.to);
+            } catch (IOException e) {
+                failedCopy.add(filePath.from.getFileName().toString());
+            }
+        }
+        return failedCopy;
     }
 
     private void validateDirectory(Path directoryPath) {
@@ -163,7 +190,20 @@ public class FileSystemFileService implements FileService {
         }
         if (!directory.isDirectory()) {
             throw new UserFileBadRequestException("File is not a directory");
+        }
+        // TODO: validate if the directory path is under the BASE_PATH defined.
+        // that is the user wont access files outside the defined path.
 
+    }
+
+
+    private class FileMoveCopy {
+        public Path from;
+        public Path to;
+
+        public FileMoveCopy(Path from, Path to) {
+            this.from = from;
+            this.to = to;
         }
     }
 }
