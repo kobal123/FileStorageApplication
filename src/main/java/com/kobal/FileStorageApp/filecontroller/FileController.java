@@ -7,14 +7,12 @@ import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.core5.net.URIBuilder;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
@@ -69,7 +67,7 @@ public class FileController {
         model.addAttribute("files", addedFiles);
         return "fragments/file-table-row :: table-row";
     }
-    @DeleteMapping(value = "/delete-files/**", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/delete/**", produces = MediaType.APPLICATION_JSON_VALUE)
     List<String> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
         if (fileNames.isEmpty())
             return Collections.emptyList();
@@ -79,31 +77,30 @@ public class FileController {
         return failedDeletions;
     }
 
-//    @PostMapping(value = "/move/**", produces = MediaType.APPLICATION_JSON_VALUE)
-//    List<String> move(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
-//        if (fileNames.isEmpty())
-//            return Collections.emptyList();
-//
-//        Path path = getPath(request);
-//        List<String> failedMove = fileService.moveFilesToDirectory(principal.getName(), path, fileNames);
-//        return failedMove;
-//    }
-//
-//
-//    @PutMapping(value = "/copy/**", produces = MediaType.APPLICATION_JSON_VALUE)
-//    List<String> copy(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
-//        if (fileNames.isEmpty())
-//            return Collections.emptyList();
-//
-//        Path path = getPath(request);
-//        List<String> failedCopy = fileService.copyFilesToDirectory(principal.getName(), path, fileNames);
-//        return failedCopy;
-//    }
+    @PostMapping(value = "/move/**", produces = MediaType.APPLICATION_JSON_VALUE)
+    List<String> move(Principal principal, @RequestBody List<String> fileNames, @RequestBody Path targetDirectory, HttpServletRequest request) {
+        if (fileNames.isEmpty())
+            return Collections.emptyList();
+
+        Path path = getPath(request);
+        List<String> failedMove = fileService.moveFilesToDirectory(principal.getName(), path, targetDirectory, fileNames);
+        return failedMove;
+    }
+
+
+    @PutMapping(value = "/copy/**", produces = MediaType.APPLICATION_JSON_VALUE)
+    List<String> copy(Principal principal, @RequestBody List<String> fileNames, @RequestBody Path targetDirectory, HttpServletRequest request) {
+        if (fileNames.isEmpty())
+            return Collections.emptyList();
+
+        Path path = getPath(request);
+        List<String> failedCopy = fileService.copyFilesToDirectory(principal.getName(), path, targetDirectory, fileNames);
+        return failedCopy;
+    }
 
     @GetMapping("/folder/**")
     String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
         Path path = getPath(request);
-
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
@@ -114,45 +111,31 @@ public class FileController {
                 .build();
         model.addAttribute("folderURL", folder);
         model.addAttribute("files", files);
-
-
         return "fragments/file-table :: file-table";
     }
 
     @GetMapping("/home/**")
-    String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
-        Path path = getPath(request);
+    String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException{
+        System.out.println(Thread.currentThread().getClass());
 
+        Path path = getPath(request);
         List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
-
         model.addAttribute("files", files);
         URI folder = new URIBuilder()
                 .appendPath("folder")
                 .appendPath(path.toString())
                 .build();
-
         URI uploadURI = new URIBuilder()
                 .appendPath("upload")
                 .appendPath(path.toString())
                 .build();
-
         model.addAttribute("folderURL", folder);
         model.addAttribute("uploadURL", uploadURI);
         return "index";
     }
-
-
-    private String getUrlFromRequest(final HttpServletRequest request) {
-        return (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    }
-
-    private String[] extractWildcardParts(String url) {
-        return url.split("/");
-    }
-
 
     @GetMapping("/download/**")
     ResponseEntity<StreamingResponseBody> download(Principal principal, HttpServletRequest request) {
@@ -178,19 +161,14 @@ public class FileController {
                 .body(streamingResponseBody);
     }
 
+
     public Path getPath(HttpServletRequest request) {
-        String url = getUrlFromRequest(request);
-        String[] parts = extractWildcardParts(url);
-        Path path = Path.of("");
-
-        // if length is 2, we hit the /home endpoint
-        if (parts.length  != 2) {
-            for (int i = 2; i < parts.length; i++) {
-                path = path.resolve(parts[i]);
-            }
-        }
-        return path;
+        String restOfTheUrl = new AntPathMatcher()
+                .extractPathWithinPattern(
+                        request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE).toString(),
+                        request.getRequestURI()
+                );
+        return Path.of(restOfTheUrl);
     }
-
 }
 
