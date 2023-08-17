@@ -61,8 +61,6 @@
 			<artifactId>httpclient5</artifactId>
 			<version>5.1.3</version>
 		</dependency>
-
-
 	</dependencies>
 
 	<build>
@@ -70,6 +68,17 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>20</source>
+					<target>20</target>
+					<compilerArgs>
+						--enable-preview
+					</compilerArgs>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
