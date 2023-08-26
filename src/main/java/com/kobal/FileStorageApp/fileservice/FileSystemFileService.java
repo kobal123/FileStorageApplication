@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,17 +30,18 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public Optional<File> getFile(String username, Path path){
-        Path actualPath = BASE_PATH.resolve(username).resolve(path);
+    public Optional<File> getFile(Principal principal, Path path){
+        Path actualPath = BASE_PATH.resolve(principal.getName()).resolve(path);
         File file = new File(actualPath.toString());
         return file.exists() ? Optional.of(file) : Optional.empty();
     }
 
     @Override
-    public void uploadFile(String username, Path uploadFilePath, InputStream fileInputStream) {
-        Path filePath = BASE_PATH.resolve(username).resolve(uploadFilePath);
+    public void uploadFile(Principal principal, Path uploadFilePath, InputStream fileInputStream) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path filePath = userRootDirectory.resolve(uploadFilePath);
 
-        validateDirectory(filePath.getParent());
+        validateDirectory(filePath.getParent(), userRootDirectory);
         File file = filePath.toFile();
         boolean wasCreated;
         try {
@@ -64,37 +66,47 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public void createDirectory(String username, Path directoryPath) {
-        File directory = new File(directoryPath.toUri());
+    public void createDirectory(Principal principal, Path directoryToCreate) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path directoryPath = userRootDirectory.resolve(directoryToCreate);
+        validateDirectory(directoryPath.getParent(), userRootDirectory);
+
+
+        File directory = directoryPath.toFile();
+
+        if (directory.exists())
+            throw new UserFileException("A file or directory already exists with this name");
+
         boolean wasCreated = directory.mkdir();
 
         if (!wasCreated) {
-            throw new RuntimeException("Directory already exists");
+            throw new UserFileException("Failed to create directory");
         }
     }
 
     @Override
-    public List<File> getFilesinDirectory(String username, Path path) {
-        Path filePath = BASE_PATH.resolve(username).resolve(path);
-        validateDirectory(filePath.getParent());
-        File directory = filePath.toFile();
-        File[] files = directory.listFiles();
+    public List<File> getFilesInDirectory(Principal principal, Path pathToDirectory) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path absoluteDirectoryPath = userRootDirectory.resolve(pathToDirectory);
+        validateDirectory(absoluteDirectoryPath, userRootDirectory);
+        File directory = absoluteDirectoryPath.toFile();
 
+        if (!directory.exists())
+            throw new UserFileNotFoundException("Directory does not exist");
+
+        File[] files = directory.listFiles();
         if (files == null)
-            throw new UserFileNotFoundException("file was not a directory");
+            throw new UserFileException("File was not a directory");
 
         return List.of(files);
     }
 
-    @Override
-    public void deleteFileByName(String username, String filename) {
-
-    }
 
     @Override
-    public List<String> deleteFilesInDirectory(String username, Path directory, List<String> fileNames) {
-        Path directoryPath = BASE_PATH.resolve(username).resolve(directory);
-        validateDirectory(directoryPath);
+    public List<String> deleteFilesInDirectory(Principal principal, Path directory, List<String> fileNames) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path directoryPath = userRootDirectory.resolve(directory);
+        validateDirectory(directoryPath, userRootDirectory);
         List<Path> filesToDelete = fileNames.stream()
                 .map(directoryPath::resolve)
                 .toList();
@@ -119,16 +131,12 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public void deleteDirectoryByUsername(String username, Path directory) {
-
-    }
-
-    @Override
-    public List<String> copyFilesToDirectory(String username, Path fromDirectory, Path toDirectory, List<String> fileNames) {
-        Path copyFrom = BASE_PATH.resolve(username).resolve(fromDirectory);
-        Path copyTo = BASE_PATH.resolve(username).resolve(toDirectory);
-        validateDirectory(copyFrom);
-        validateDirectory(copyTo);
+    public List<String> copyFilesToDirectory(Principal principal, Path fromDirectory, Path toDirectory, List<String> fileNames) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path copyFrom = userRootDirectory.resolve(fromDirectory);
+        Path copyTo = userRootDirectory.resolve(toDirectory);
+        validateDirectory(copyFrom, userRootDirectory);
+        validateDirectory(copyTo, userRootDirectory);
 
         List<FileMoveCopy> sourceAndDestination = fileNames.stream()
                 .map(s -> new FileMoveCopy(
@@ -158,13 +166,13 @@ public class FileSystemFileService implements FileService {
         }
         return failedCopy;
     }
-
     @Override
-    public List<String> moveFilesToDirectory(String username, Path fromDirectory, Path toDirectory, List<String> fileNames) {
-        Path moveFrom = BASE_PATH.resolve(username).resolve(fromDirectory);
-        Path moveTo = BASE_PATH.resolve(username).resolve(toDirectory);
-        validateDirectory(moveFrom);
-        validateDirectory(moveTo);
+    public List<String> moveFilesToDirectory(Principal principal, Path fromDirectory, Path toDirectory, List<String> fileNames) {
+        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+        Path moveFrom = userRootDirectory.resolve(fromDirectory);
+        Path moveTo = userRootDirectory.resolve(toDirectory);
+        validateDirectory(moveFrom, userRootDirectory);
+        validateDirectory(moveTo, userRootDirectory);
 
         List<FileMoveCopy> sourceAndDestination = fileNames.stream()
                 .map(s -> new FileMoveCopy(
@@ -183,27 +191,23 @@ public class FileSystemFileService implements FileService {
         return failedCopy;
     }
 
-    private void validateDirectory(Path directoryPath) {
-        File directory = directoryPath.toFile();
+    private void validateDirectory(Path directoryPathToCheck, Path userRootDirectory) {
+        if (directoryPathToCheck == null)
+            throw new UserFileException("Cannot access this directory");
+
+        directoryPathToCheck = directoryPathToCheck.normalize().toAbsolutePath();
+        if (!directoryPathToCheck.startsWith(userRootDirectory))
+            throw new UserFileException("Cannot access this directory");
+
+        File directory = directoryPathToCheck.toFile();
         if (!directory.exists()) {
             throw new UserFileNotFoundException("Directory not found");
         }
         if (!directory.isDirectory()) {
             throw new UserFileBadRequestException("File is not a directory");
         }
-        // TODO: validate if the directory path is under the BASE_PATH defined.
-        // that is the user wont access files outside the defined path.
-
     }
 
 
-    private class FileMoveCopy {
-        public Path from;
-        public Path to;
-
-        public FileMoveCopy(Path from, Path to) {
-            this.from = from;
-            this.to = to;
-        }
-    }
+    record FileMoveCopy(Path from, Path to) { }
 }
