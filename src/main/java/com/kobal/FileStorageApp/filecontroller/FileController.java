@@ -60,7 +60,7 @@ public class FileController {
         Path filePath = path.resolve(fileName);
 
         try {
-            fileService.uploadFile(principal.getName(), filePath, multipartFiles.getInputStream());
+            fileService.uploadFile(principal, filePath, multipartFiles.getInputStream());
             addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli(), false));
         } catch (IOException exception) {
             throw new UserFileException("Error uploading file");
@@ -75,7 +75,7 @@ public class FileController {
             return Collections.emptyList();
 
         Path path = getPath(request);
-        List<String> failedDeletions = fileService.deleteFilesInDirectory(principal.getName(), path, fileNames);
+        List<String> failedDeletions = fileService.deleteFilesInDirectory(principal, path, fileNames);
         return failedDeletions;
     }
 
@@ -85,7 +85,7 @@ public class FileController {
             return Collections.emptyList();
 
         Path path = getPath(request);
-        List<String> failedMove = fileService.moveFilesToDirectory(principal.getName(), path, targetDirectory, fileNames);
+        List<String> failedMove = fileService.moveFilesToDirectory(principal, path, targetDirectory, fileNames);
         return failedMove;
     }
 
@@ -96,14 +96,14 @@ public class FileController {
             return Collections.emptyList();
 
         Path path = getPath(request);
-        List<String> failedCopy = fileService.copyFilesToDirectory(principal.getName(), path, targetDirectory, fileNames);
+        List<String> failedCopy = fileService.copyFilesToDirectory(principal, path, targetDirectory, fileNames);
         return failedCopy;
     }
 
     @GetMapping("/folder/**")
     String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
         Path path = getPath(request);
-        List<FileMetaData> files = fileService.getFilesInDirectory(principal.getName(), path)
+        List<FileMetaData> files = fileService.getFilesInDirectory(principal, path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
@@ -121,7 +121,7 @@ public class FileController {
         System.out.println(Thread.currentThread().getClass());
 
         Path path = getPath(request);
-        List<FileMetaData> files = fileService.getFilesInDirectory(principal.getName(), path)
+        List<FileMetaData> files = fileService.getFilesInDirectory(principal, path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
@@ -143,7 +143,7 @@ public class FileController {
     ResponseEntity<StreamingResponseBody> download(Principal principal, HttpServletRequest request) {
 
         Path path = getPath(request);
-        Optional<File> optionalFile = fileService.getFile(principal.getName(), path);
+        Optional<File> optionalFile = fileService.getFile(principal, path);
 
         if (optionalFile.isEmpty()) {
             throw new UserFileException("Failed to download file.");

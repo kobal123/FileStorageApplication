@@ -3,23 +3,23 @@ package com.kobal.FileStorageApp.fileservice;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
 public interface FileService {
 
-    Optional<File> getFile(String username, Path path);
-    void uploadFile(String username, Path path, InputStream file);
 
-    void createDirectory(String username, Path directoryPath);
-    List<File> getFilesinDirectory(String username, Path path);
-    void deleteFileByName(String username, String filename);
 
-    List<String> deleteFilesInDirectory(String username, Path directory, List<String> files);
+    Optional<File> getFile(Principal principal, Path path);
+    void uploadFile(Principal principal, Path path, InputStream file);
 
-    void deleteDirectoryByUsername(String username, Path directory);
+    void createDirectory(Principal principal, Path directoryPath);
+    List<File> getFilesInDirectory(Principal principal, Path path);
 
-    List<String> moveFilesToDirectory(String username, Path from, Path to, List<String> fileNames);
+    List<String> deleteFilesInDirectory(Principal principal, Path directory, List<String> files);
 
-    List<String> copyFilesToDirectory(String username, Path from, Path to, List<String> fileNames);
+    List<String> moveFilesToDirectory(Principal principal, Path from, Path to, List<String> fileNames);
+
+    List<String> copyFilesToDirectory(Principal principal, Path from, Path to, List<String> fileNames);
 }
