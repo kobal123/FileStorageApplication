@@ -46,20 +46,22 @@ public class FileController {
 
     @PostMapping("/upload/**")
     String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFiles, HttpServletRequest request, Model model) {
+        if (multipartFiles.isEmpty())
+            throw new UserFileException("File cannot be empty");
+
         Path path = getPath(request);
         List<FileMetaData> addedFiles = new ArrayList<>();
         String fileName = multipartFiles.getOriginalFilename();
 
-        if (fileName == null) {
-            throw new UserFileBadRequestException("Bad file name");
-        }
+        if (fileName == null)
+            throw new UserFileBadRequestException("File name cannot be empty");
+
 
         Path filePath = path.resolve(fileName);
 
         try {
             fileService.uploadFile(principal.getName(), filePath, multipartFiles.getInputStream());
             addedFiles.add(new FileMetaData(fileName, multipartFiles.getSize(), Instant.now().toEpochMilli(), false));
-
         } catch (IOException exception) {
             throw new UserFileException("Error uploading file");
         }
@@ -101,7 +103,7 @@ public class FileController {
     @GetMapping("/folder/**")
     String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
         Path path = getPath(request);
-        List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
+        List<FileMetaData> files = fileService.getFilesInDirectory(principal.getName(), path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
@@ -119,7 +121,7 @@ public class FileController {
         System.out.println(Thread.currentThread().getClass());
 
         Path path = getPath(request);
-        List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
+        List<FileMetaData> files = fileService.getFilesInDirectory(principal.getName(), path)
                 .stream()
                 .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
                 .toList();
