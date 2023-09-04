@@ -1,22 +1,30 @@
 package com.kobal.FileStorageApp.fileservice;
 
-import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
+import com.kobal.FileStorageApp.FileMetaData;
+import com.kobal.FileStorageApp.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
-import org.springframework.beans.factory.annotation.Value;
+import com.kobal.FileStorageApp.storage.FileMetaDataRepository;
+import com.kobal.FileStorageApp.storage.FileStorageService;
+import com.kobal.FileStorageApp.storage.FileSystemStorageConfiguration;
+import com.kobal.FileStorageApp.user.AppUser;
+import com.kobal.FileStorageApp.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class FileSystemFileService implements FileService {
@@ -34,10 +42,42 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public Optional<File> getFile(Principal principal, Path path){
-        Path actualPath = BASE_PATH.resolve(principal.getName()).resolve(path);
-        File file = new File(actualPath.toString());
-        return file.exists() ? Optional.of(file) : Optional.empty();
+    public FileMetaDataDTO uploadFile(Principal principal, FilePath uploadFilePath, MultipartFile file) {
+//        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
+//        Path fileSystemFilePath = userRootDirectory.resolve(uploadFilePath.toString());
+//        validateDirectory(fileSystemFilePath.getParent(), userRootDirectory);
+        AppUser user = checkUserExistsOrElseThrow(principal.getName(), "User could not be found");
+
+        FilePath filePath = new FilePath("root")
+                .addPartRaw(String.valueOf(user.getId()))
+                .addPartRaw(uploadFilePath.toString());
+
+
+        FileMetaData parentFolder = fileMetaDataRepository
+                .findByAbsolutePath(user.getName(), filePath.toString())
+                .orElseThrow(() -> new UserFileNotFoundException("Folder does not exist"));
+
+
+        FileMetaData fileMetaData = new FileMetaData();
+        fileMetaData.setModified(LocalDateTime.now(ZoneId.of("UTC")));
+        fileMetaData.setParent(parentFolder);
+        fileMetaData.setUser(user);
+        fileMetaData.setFileUUID(UUID.randomUUID());
+        fileMetaData.setIsDirectory(false);
+        fileMetaData.setSize(file.getSize());
+        fileMetaData.setName(file.getOriginalFilename());
+        String absolute = parentFolder.getAbsolutePath();
+        fileMetaData.setPath(absolute);// path is the path up to the folder containing the file
+
+        FileMetaDataDTO dto = dtoFromMetaData(fileMetaData);
+        try {
+            fileStorageService.upload(dto, file.getInputStream());
+            fileMetaDataRepository.save(fileMetaData);
+        } catch (IOException e) {
+            throw new UserFileException("Failed to upload file");
+        }
+
+        return dto;
     }
 
     @Override
