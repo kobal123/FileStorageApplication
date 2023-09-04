@@ -50,19 +50,12 @@ public class FileSystemFileService implements FileService {
             throw new UserFileException("Failed to upload file.");
         }
 
-        if (!wasCreated)
-            throw new UserFileException("There was an error creating the file");
-
-        try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
-            byte[] buffer = new byte[BUFFER_READ_SIZE];
-            int bytesRead;
-            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                fileOutputStream.write(buffer, 0, bytesRead);
-            }
-        } catch (IOException e) {
-            file.delete();
-            throw new UserFileException("There was an error creating the file");
-        }
+    private FileMetaDataDTO dtoFromMetaData(FileMetaData metaData) {
+        return new FileMetaDataDTO(metaData.getName(),
+                metaData.getSize(),
+                metaData.getModified(),
+                metaData.isDirectory(),
+                metaData.getFileUUID());
     }
 
     @Override
@@ -85,20 +78,18 @@ public class FileSystemFileService implements FileService {
     }
 
     @Override
-    public List<File> getFilesInDirectory(Principal principal, Path pathToDirectory) {
-        Path userRootDirectory = BASE_PATH.resolve(principal.getName());
-        Path absoluteDirectoryPath = userRootDirectory.resolve(pathToDirectory);
-        validateDirectory(absoluteDirectoryPath, userRootDirectory);
-        File directory = absoluteDirectoryPath.toFile();
+    public List<FileMetaDataDTO> getFilesInDirectory(Principal principal, FilePath pathToDirectory) {
+        AppUser user = checkUserExistsOrElseThrow(principal.getName(), "User could not be found");
 
-        if (!directory.exists())
-            throw new UserFileNotFoundException("Directory does not exist");
+        FilePath filePath = new FilePath("root")
+                .addPartRaw(String.valueOf(user.getId()))
+                .addPartRaw(pathToDirectory.toString());
 
-        File[] files = directory.listFiles();
-        if (files == null)
-            throw new UserFileException("File was not a directory");
-
-        return List.of(files);
+        return fileMetaDataRepository
+                .getChildrenByUserNameAndPath(principal.getName(), filePath.toString())
+                .stream()
+                .map(this::dtoFromMetaData)
+                .toList();
     }
 
 
@@ -199,13 +190,13 @@ public class FileSystemFileService implements FileService {
         if (!directoryPathToCheck.startsWith(userRootDirectory))
             throw new UserFileException("Cannot access this directory");
 
-        File directory = directoryPathToCheck.toFile();
-        if (!directory.exists()) {
-            throw new UserFileNotFoundException("Directory not found");
-        }
-        if (!directory.isDirectory()) {
-            throw new UserFileBadRequestException("File is not a directory");
-        }
+    private AppUser checkUserExistsOrElseThrow(String username, String message) {
+        return userRepository.getUserByName(username)
+                .orElseThrow(() -> new RuntimeException(message));
+    }
+
+    private String replaceSlashes(Path path) {
+        return path.toString().replace("\\", "/");
     }
 
 
