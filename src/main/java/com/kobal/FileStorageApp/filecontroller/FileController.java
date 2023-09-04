@@ -100,22 +100,6 @@ public class FileController {
         return failedCopy;
     }
 
-    @GetMapping("/folder/**")
-    String folderTable(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException {
-        Path path = getPath(request);
-        List<FileMetaData> files = fileService.getFilesInDirectory(principal, path)
-                .stream()
-                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified(), file.isDirectory()))
-                .toList();
-        URI folder = new URIBuilder()
-                .appendPath("folder")
-                .appendPath(path.toString())
-                .build();
-        model.addAttribute("folderURL", folder);
-        model.addAttribute("files", files);
-        return "fragments/file-table :: file-table";
-    }
-
     @GetMapping("/home/**")
     String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException{
         System.out.println(Thread.currentThread().getClass());
