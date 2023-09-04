@@ -20,13 +20,17 @@ import java.util.Optional;
 
 @Service
 public class FileSystemFileService implements FileService {
-
-    private final int BUFFER_READ_SIZE = 8 * 1024;
+    private final FileMetaDataRepository fileMetaDataRepository;
+    private final FileStorageService fileStorageService;
+    private final UserRepository userRepository;
     private  final Path BASE_PATH;
 
 
-    public FileSystemFileService( @Value("${BASE_FILESYSTEM_PATH}") String basePath) {
-        BASE_PATH = Path.of(basePath);
+    public FileSystemFileService(FileMetaDataRepository fileMetaDataRepository, FileStorageService fileStorageService, UserRepository userRepository, FileSystemStorageConfiguration fileSystemStorageConfiguration) {
+        this.fileMetaDataRepository = fileMetaDataRepository;
+        this.fileStorageService = fileStorageService;
+        this.userRepository = userRepository;
+        BASE_PATH = fileSystemStorageConfiguration.getRoot();
     }
 
     @Override
