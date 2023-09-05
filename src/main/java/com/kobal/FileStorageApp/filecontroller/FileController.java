@@ -2,7 +2,6 @@ package com.kobal.FileStorageApp.filecontroller;
 
 
 import com.kobal.FileStorageApp.FileMetaDataDTO;
-import com.kobal.FileStorageApp.FileMetaData;
 import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
@@ -126,7 +125,7 @@ public class FileController {
 
         FilePath filePath = getFilePathFromRequest(request);
         FileMetaDataDTO metaData= fileService
-                .getFileMetaDataByUserNameAndFilePath(principal.getName(), filePath)
+                .getFileMetaDataByPath(principal, filePath)
                 .orElseThrow(() -> new UserFileNotFoundException("File was not found."));
 
 
@@ -156,7 +155,6 @@ public class FileController {
 
 
     public FilePath getFilePathFromRequest(HttpServletRequest request) {
-        //        System.out.println("rest of url "+"'" +restOfTheUrl+"'");
         return FilePath.raw(
                 new AntPathMatcher()
                 .extractPathWithinPattern(
