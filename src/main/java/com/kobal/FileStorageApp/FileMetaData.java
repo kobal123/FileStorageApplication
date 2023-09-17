@@ -2,10 +2,19 @@ package com.kobal.FileStorageApp;
 
 import com.kobal.FileStorageApp.fileservice.FilePath;
 import com.kobal.FileStorageApp.user.AppUser;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.UUID;
 
 @Entity
 @Table(uniqueConstraints={
@@ -36,7 +45,7 @@ public class FileMetaData{
     @ManyToOne(fetch = FetchType.LAZY)
     private AppUser user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     private FileMetaData parent;
 
     public UUID getFileUUID() {

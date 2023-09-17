@@ -3,7 +3,8 @@ package com.kobal.FileStorageApp.fileservice;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FilePath {
     private final List<String> segments = new ArrayList<>();
@@ -52,6 +53,23 @@ public class FilePath {
         segments.add(s);
         return this;
     }
+
+    public FilePath addPartRaw(FilePath filePath) {
+        addPartRaw(filePath.toString());
+        return this;
+    }
+
+
+    public FilePath addPartRawCopy(String s) {
+
+        return new FilePath()
+                .addPartRaw(this.toString())
+                .addPartRaw(s);
+    }
+    public FilePath addPartRawCopy(FilePath filePath) {
+        return addPartRawCopy(filePath.toString());
+    }
+
 
     public FilePath getParent() {
         FilePath parent = new FilePath();
