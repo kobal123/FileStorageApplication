@@ -1,6 +1,6 @@
 const uploadForm = document.getElementById('myformfileinput');
 const form = document.getElementById('uploadForm')
-const uploadURL = form.getAttribute("action");
+let uploadURL = form.getAttribute("action");
 const completedCount = 0; // added for loadend scenario
 const fileModal = document.getElementById("file-modal");
 const token = document.querySelector("meta[name='_csrf']").getAttribute('content')
@@ -48,22 +48,9 @@ const header = document.querySelector("meta[name='_csrf_header']").getAttribute(
         fileModal.showModal();
     });
 
-// Attach event handlers to file modifier buttons
-//htmx.findAll("delete-file-button");
-//const fileRename = htmx.findAll("");
-//const file = htmx.findAll("");
-//const fileDelete = htmx.find("");
-
-//Array.from(htmx.findAll(".directory"))
-//    .forEach(element => {
-//        console.log("setting element onclick")
-//        htmx.on(element, "click", event => {
-//            history.pushState("", "", window.location.href+"/"+element.innerText)
-//        });
-//    });
-
 function uploadFiles() {
     for (let i = 0; i < uploadForm.files.length; i++) {
+        console.log("UPLOADING FILE")
         htmx.ajax('POST', uploadURL, {
         target:'#main-file-table-tbody',
         swap:'beforeend',
