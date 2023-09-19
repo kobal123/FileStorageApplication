@@ -12,7 +12,7 @@ public interface FileStorageService {
 
     boolean rename(FileMetaDataDTO metaDataDTO, String name);
 
-    void move(List<FileMetaDataDTO> source, FileMetaDataDTO target);
+    boolean move(FileMetaDataDTO source, FileMetaDataDTO target);
 
-    boolean copy(List<FileMetaDataDTO> source, FileMetaDataDTO target);
+    boolean copy(FileMetaDataDTO source, FileMetaDataDTO target);
 }

@@ -18,11 +18,11 @@ public interface FileService {
     void createDirectory(Principal principal, FilePath directoryPath);
     List<FileMetaDataDTO> getFilesInDirectory(Principal principal, FilePath path);
 
-    List<String> deleteFilesInDirectory(Principal principal, FilePath directory, List<String> files);
+    List<FileMetaDataDTO> deleteFilesInDirectory(Principal principal, FilePath directory, List<String> files);
 
-    List<String> moveFilesToDirectory(Principal principal, FilePath from, FilePath to, List<String> fileNames);
+    List<FileMetaDataDTO> moveFilesToDirectory(Principal principal, FilePath from, FilePath to, List<String> fileNames);
 
-    List<String> copyFilesToDirectory(Principal principal, FilePath from, FilePath to, List<String> fileNames);
+    List<FileMetaDataDTO> copyFilesToDirectory(Principal principal, FilePath from, FilePath to, List<String> fileNames);
 
     Optional<FileMetaDataDTO> getFileMetaDataByPath(Principal principal, FilePath filePath);
 }
