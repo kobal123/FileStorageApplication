@@ -1,32 +1,30 @@
 package com.kobal.FileStorageApp.filecontroller;
 
 
-import com.kobal.FileStorageApp.FileMetaDataDTO;
-import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
+import com.kobal.FileStorageApp.FileMetaData;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
-import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
-import com.kobal.FileStorageApp.fileservice.FilePath;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.hc.core5.net.URIBuilder;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/")
@@ -36,115 +34,62 @@ public class FileController {
     public FileController(FileService fileService) {
         this.fileService = fileService;
     }
-    @GetMapping("")
-    String redirectToHome() {
-        return "redirect:/home";
-    }
+
 
     @PostMapping("/upload/**")
-    String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFile, HttpServletRequest request, Model model) {
-        if (multipartFile.isEmpty())
-            throw new UserFileException("File cannot be empty");
-
-        String fileName = multipartFile.getOriginalFilename();
-        if (fileName == null)
-            throw new UserFileBadRequestException("File name cannot be empty");
-
-
-        FilePath filePath = getFilePathFromRequest(request);
-        FileMetaDataDTO metaDataDTO =  fileService.uploadFile(principal, filePath, multipartFile);
-
-        List<FileMetaDataDTO> addedFiles = new ArrayList<>();
-        addedFiles.add(metaDataDTO);
-        model.addAttribute("files", addedFiles);
-        return "fragments/file-table-row :: table-row";
-    }
-    @DeleteMapping(value = "/delete/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
-        if (fileNames.isEmpty())
-            return Collections.emptyList();
-
-        FilePath filePath = getFilePathFromRequest(request);
-        List<String> failedDeletions = fileService.deleteFilesInDirectory(principal, filePath, fileNames);
-        return failedDeletions;
-    }
-
-    @PostMapping(value = "/move/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> move(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
-        if (fileNames.isEmpty())
-            return Collections.emptyList();
-
-
-        FilePath sourceDirectoryPath = getFilePathFromRequest(request);
-        FilePath targetDirectoryPath = new FilePath(targetDirectory);
-
-        List<String> failedMove = fileService.moveFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
-        return failedMove;
-    }
-
-
-    @PutMapping(value = "/copy/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> copy(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
-        if (fileNames.isEmpty())
-            return Collections.emptyList();
-
-        FilePath sourceDirectoryPath = getFilePathFromRequest(request);
-        FilePath targetDirectoryPath = new FilePath(targetDirectory);
-
-        List<String> failedCopy = fileService.copyFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
-        return failedCopy;
+    void uploadFile(Principal principal, @RequestParam("file") MultipartFile[] multipartFiles, HttpServletRequest request) {
+        Path path = getPath(request);
+        for (MultipartFile multipartFile : multipartFiles) {
+            Path filePath = path.resolve(multipartFile.getOriginalFilename());
+            try {
+                fileService.uploadFile(principal.getName(), filePath, multipartFile.getInputStream());
+            } catch (UserFileException | IOException exception) {
+                //TODO: throw custom exception
+            }
+        }
     }
 
     @GetMapping("/home/**")
-    String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException{
-        FilePath filePath = getFilePathFromRequest(request);
-        List<FileMetaDataDTO> files = fileService.getFilesInDirectory(principal, filePath);
+    String index(Principal principal, Model model, HttpServletRequest request) {
+        Path path = getPath(request);
+
+        List<FileMetaData> files = fileService.getFilesinDirectory(principal.getName(), path)
+                .stream()
+                .map(file -> new FileMetaData(file.getName(), file.length(), file.lastModified()))
+                .toList();
 
         model.addAttribute("files", files);
-        URI folder = new URIBuilder()
-                .appendPath("home")
-                .appendPath(filePath.toString())
-                .build();
-        URI uploadURI = new URIBuilder()
-                .appendPath("upload")
-                .appendPath(filePath.toString())
-                .build();
-        model.addAttribute("folderURL", folder);
-        model.addAttribute("uploadURL", uploadURI);
-
-        String header = request.getHeader("HX-Request");
-        if (header != null) { //request came from frontend htmx event
-            return "fragments/file-table :: file-table";
-        }
+        model.addAttribute("uploadURL", Path.of("upload").resolve(path));
         return "index";
-
     }
+
+
+    private String getUrlFromRequest(final HttpServletRequest request) {
+        return (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    }
+
+    private String[] extractWildcardParts(String url) {
+        return url.split("/");
+    }
+
 
     @GetMapping("/download/**")
     ResponseEntity<StreamingResponseBody> download(Principal principal, HttpServletRequest request) {
 
-        FilePath filePath = getFilePathFromRequest(request);
-        FileMetaDataDTO metaData= fileService
-                .getFileMetaDataByPath(principal, filePath)
-                .orElseThrow(() -> new UserFileNotFoundException("File was not found."));
+        Path path = getPath(request);
+        Optional<File> optionalFile = fileService.getFile(principal.getName(), path);
 
+        if (optionalFile.isEmpty()) {
+            throw new UserFileException("Failed to download file.");
+        }
 
+        File file = optionalFile.get();
+        StreamingResponseBody streamingResponseBody = outputStream -> Files.copy(file.toPath(), outputStream);
 
-        StreamingResponseBody streamingResponseBody = outputStream -> {
-            try(InputStream inputStream = fileService.download(principal, filePath); outputStream) {
-                byte[] buffer = new byte[8 * 1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
-            } catch (Exception e) {
-                throw new UserFileException("There was an error downloading the requested file");
-            }
-        };
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + metaData.getName());
-        httpHeaders.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(metaData.getSize()));
-        httpHeaders.add(HttpHeaders.LAST_MODIFIED, String.valueOf(metaData.getModified()));
+        httpHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + file.getName());
+        httpHeaders.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(file.length()));
+        httpHeaders.add(HttpHeaders.LAST_MODIFIED, String.valueOf(file.lastModified()));
         httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
         return ResponseEntity
@@ -153,15 +98,19 @@ public class FileController {
                 .body(streamingResponseBody);
     }
 
+    public Path getPath(HttpServletRequest request) {
+        String url = getUrlFromRequest(request);
+        String[] parts = extractWildcardParts(url);
+        Path path = Path.of("");
 
-    public FilePath getFilePathFromRequest(HttpServletRequest request) {
-        return FilePath.raw(
-                new AntPathMatcher()
-                .extractPathWithinPattern(
-                        request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE).toString(),
-                        request.getRequestURI()
-                )
-        );
+        // if length is 2, we hit the /home endpoint
+        if (parts.length  != 2) {
+            for (int i = 2; i < parts.length; i++) {
+                path = path.resolve(parts[i]);
+            }
+        }
+        return path;
     }
+
 }
 
