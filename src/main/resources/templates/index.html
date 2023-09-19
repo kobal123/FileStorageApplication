@@ -272,7 +272,8 @@
       <div id="file-options-container" >
         <button>download</button>
         <button id="file-options">---</button>
-        <div th:insert="fragments/file-modal :: file-modal"></div>
+        <div th:insert="~{fragments/file-modal :: file-modal}"></div>
+
       </div>
 
       <div class="search-frame">
@@ -451,7 +452,7 @@
                   <th>Size</th>
               </tr>
           </thead>
-          <div th:replace="fragments/file-table.html :: file-table-body"></div>
+          <div th:replace="~{fragments/file-table.html :: file-table-body}"></div>
 
           <!-- Add more rows as needed -->
             </table>

@@ -1,6 +1,6 @@
 const uploadForm = document.getElementById('myformfileinput');
 const form = document.getElementById('uploadForm')
-const uploadURL = form.getAttribute("action");
+let uploadURL = form.getAttribute("action");
 const completedCount = 0; // added for loadend scenario
 const fileModal = document.getElementById("file-modal");
 const token = document.querySelector("meta[name='_csrf']").getAttribute('content')
@@ -48,22 +48,9 @@ const header = document.querySelector("meta[name='_csrf_header']").getAttribute(
         fileModal.showModal();
     });
 
-// Attach event handlers to file modifier buttons
-//htmx.findAll("delete-file-button");
-//const fileRename = htmx.findAll("");
-//const file = htmx.findAll("");
-//const fileDelete = htmx.find("");
-
-//Array.from(htmx.findAll(".directory"))
-//    .forEach(element => {
-//        console.log("setting element onclick")
-//        htmx.on(element, "click", event => {
-//            history.pushState("", "", window.location.href+"/"+element.innerText)
-//        });
-//    });
-
 function uploadFiles() {
     for (let i = 0; i < uploadForm.files.length; i++) {
+        console.log("UPLOADING FILE")
         htmx.ajax('POST', uploadURL, {
         target:'#main-file-table-tbody',
         swap:'beforeend',
@@ -73,3 +60,58 @@ function uploadFiles() {
         });
     }
 }
+
+function handleUploadUrl(event) {
+    console.log("UPDATING SHIT:")
+  const newUrl = window.location.pathname;
+  if (newUrl.length < 1) {
+    return;
+  }
+  const parts = newUrl.substr(1, newUrl.length).split("/");
+
+  if (parts.length == 1) {
+    return;
+  }
+  parts.splice(0, 1, "/upload");
+  form.action = parts.join("/");
+}
+
+const updateUploadURL = (evt) => {
+    const newUrl = evt.detail.path;
+    if (newUrl.length < 1) {
+        return;
+    }
+    const parts = newUrl.substr(1, newUrl.length).split("/");
+
+    if (parts.length == 1) {
+        return;
+    }
+    parts.splice(0, 1, "/upload"); // append /upload to current url
+    form.action = parts.join("/");
+    uploadURL = form.action;
+}
+
+const update = (event) => {
+    updateUploadURL(event);
+    addFileCheckBoxListeners();
+};
+
+const addFileCheckBoxListeners = () => {
+    // get each file checkbox
+    const checkboxes = htmx.findAll(".table-cell-checkbox");
+    Array.from(checkboxes).forEach(checkbox => htmx.on(checkbox, ""))
+    // add listener to add item into selected_file
+}
+
+document.body.addEventListener('htmx:pushedIntoHistory', update);
+document.body.addEventListener('htmx:historyRestore', update);
+
+
+// File selection TODO
+// if download / delete / move etc
+// is happening:
+// 1. get each checkbox element
+// 2. loop through each, check if it's checked
+// 3. if yes, do the job in batch.
+// 4. handle returns from the server, swap elements / delete them.
+let selected_files = []
