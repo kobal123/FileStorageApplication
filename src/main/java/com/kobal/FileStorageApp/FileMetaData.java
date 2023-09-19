@@ -27,7 +27,7 @@ public class FileMetaData{
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false, length = 4000)
+    @Column(nullable = false, length = 15)
     private String name;
 
     private Long size;
@@ -38,7 +38,7 @@ public class FileMetaData{
     @Column(nullable = false)
     private Boolean isDirectory;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2500)
     private String path;
 
     @JoinColumn(nullable = false)
@@ -156,4 +156,6 @@ public class FileMetaData{
                 ", fileUUID=" + fileUUID +
                 '}';
     }
+
+
 }
