@@ -93,4 +93,20 @@ class FilePathTest {
         // then
         assertEquals(expectedFileName, actual);
     }
+
+
+    @Test
+    void addPartRawCopy() {
+        // given
+        FilePath filePath = new FilePath("abc");
+
+        // when
+        FilePath copy = filePath.addPartRawCopy(" ");
+
+        // then
+        assertNotSame(filePath, copy);
+        assertEquals(copy.toString(), "abc/ ");
+        assertEquals(filePath.toString(), "abc");
+    }
+
 }
