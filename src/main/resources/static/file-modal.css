@@ -1,0 +1,30 @@
+.file-opt-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+}
+
+button.file-opt-button:hover {
+    background: #e1e1e1;
+}
+.type-section-style-solid-states-primary, .type-section-style-solid-states-primary * { box-sizing: border-box; }.type-section-style-solid-states-primary {background: var(--layout-100, #fcfcfc); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; position: relative; box-shadow: 0px 0px 8px 0px rgba(34, 34, 34, 0.10); overflow: hidden;}
+ .sec-1 {display: flex; flex-direction: column; gap: 4px; align-items: flex-start; justify-content: flex-start; flex-shrink: 0; position: relative;}
+ .list-1 {background: var(--layout-100, #fcfcfc); border-radius: 6px; padding: 12px; display: flex; flex-direction: row; gap: 0px; align-items: center; justify-content: flex-start; flex-shrink: 0; width: 288px; position: relative; overflow: hidden;}
+ .left {display: flex; flex-direction: row; gap: 4px; align-items: flex-start; justify-content: flex-start; flex: 1; position: relative; overflow: hidden;}
+ .icon-holder {padding: 1px; display: flex; flex-direction: row; gap: 10px; align-items: flex-start; justify-content: flex-start; flex-shrink: 0; position: relative; overflow: hidden;}
+ .feather-icons-fi-file-plus {flex-shrink: 0; position: relative; overflow: visible;}
+ .content {display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; flex-shrink: 0; position: relative; overflow: hidden;}
+ .new-file {color: var(--layout-800, #1a1a1a); text-align: left; font: var(--poppins-18-px, 500 18px/22px 'Poppins', sans-serif); position: relative;}
+ .list-2 {background: var(--layout-100, #fcfcfc); border-radius: 6px; padding: 12px; display: flex; flex-direction: row; gap: 0px; align-items: center; justify-content: flex-start; flex-shrink: 0; width: 288px; position: relative; overflow: hidden;}
+ .feather-icons-fi-copy {flex-shrink: 0; position: relative; overflow: visible;}
+ .list-3 {background: var(--layout-100, #fcfcfc); border-radius: 6px; padding: 12px; display: flex; flex-direction: row; gap: 0px; align-items: center; justify-content: flex-start; flex-shrink: 0; width: 288px; position: relative; overflow: hidden;}
+ .feather-icons-fi-edit {flex-shrink: 0; position: relative; overflow: visible;}
+ .divider {border-style: solid; border-color: var(--layout-400, #c5c5c5); border-width: 1px 0 0 0; flex-shrink: 0; width: 265px; height: 0px; position: relative;}
+ .sec-2 {display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: flex-start; flex-shrink: 0; position: relative;}
+ .delete-file {background: var(--layout-100, #fcfcfc); border-radius: 6px; padding: 12px; display: flex; flex-direction: row; gap: 0px; align-items: center; justify-content: flex-start; flex-shrink: 0; width: 288px; position: relative; overflow: hidden;}
+ .feather-icons-fi-trash-2 {flex-shrink: 0; position: relative; overflow: visible;}
+
+#file-modal {
+    background: var(--layout-100, #fcfcfc); border-radius: 16px;   box-shadow: 0px 0px 8px 0px rgba(34, 34, 34, 0.10); overflow: hidden;
+    padding: 0;}
+}
