@@ -34,6 +34,13 @@ public class AppUser implements UserDetails {
         this.password = password;
     }
 
+    public AppUser(Long id, String name, String email, String password) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+    }
+
     public String getEmail() {
         return email;
     }

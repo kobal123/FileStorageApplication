@@ -5,20 +5,21 @@ import java.util.UUID;
 
 public class FileMetaDataDTO {
 
+    private final long userId;
     private final String name;
     private final String path;
-    private final Long size;
+    private final long size;
     private final LocalDateTime modified;
-    private final Boolean isDirectory;
+    private final boolean isDirectory;
     private final UUID uuid;
     private final String absolutePath;
 
-    public FileMetaDataDTO(String name, String path, Long size, LocalDateTime modified, boolean isDirectory, UUID uuid) {
+    public FileMetaDataDTO(Long userId, String name, String path, long size, LocalDateTime modified, boolean isDirectory, UUID uuid) {
+        this.userId = userId;
         this.name = name;
         this.path = path;
         this.size = size;
         this.modified = modified;
-
         this.isDirectory = isDirectory;
         this.uuid = uuid;
         this.absolutePath = path + "/" + name;
@@ -47,6 +48,9 @@ public class FileMetaDataDTO {
         return uuid;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
     public boolean isDirectory() {
         return isDirectory;
     }
