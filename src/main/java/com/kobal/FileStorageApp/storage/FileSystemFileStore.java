@@ -2,6 +2,7 @@ package com.kobal.FileStorageApp.storage;
 
 import com.kobal.FileStorageApp.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 
@@ -11,8 +12,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
+@ConditionalOnProperty(
+        value="storage.current",
+        havingValue = "filesystem",
+        matchIfMissing = true)
 public class FileSystemFileStore implements FileStorageService {
     private final Path BASE_PATH;
 
@@ -22,8 +28,8 @@ public class FileSystemFileStore implements FileStorageService {
 
 
     @Override
-    public boolean upload(FileMetaDataDTO path, InputStream inputStream) {
-        File file = BASE_PATH.resolve(path.toString()).toFile();
+    public boolean upload(FileMetaDataDTO metaData, InputStream inputStream) {
+        File file = getPathFromMetaData(metaData).toFile();
 
         boolean wasCreated;
         try {
@@ -50,8 +56,8 @@ public class FileSystemFileStore implements FileStorageService {
     }
 
     @Override
-    public InputStream download(FileMetaDataDTO path) {
-        File file = BASE_PATH.resolve(path.toString()).toFile();
+    public InputStream download(FileMetaDataDTO metaData) {
+        File file = getPathFromMetaData(metaData).toFile();
         try {
             return Files.newInputStream(file.toPath());
         } catch (IOException e) {
@@ -61,18 +67,25 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean delete(FileMetaDataDTO metaData) {
-        File file = BASE_PATH.resolve(metaData.getPath()).toFile();
+        Path file = getPathFromMetaData(metaData);
         boolean isDirectory = metaData.isDirectory();
-        if (file.isDirectory() != isDirectory) // should never happen??
+        if (file.toFile().isDirectory() != isDirectory) // should never happen??
             return false;
 
+
+
         if (isDirectory) {
-            return FileSystemUtils.deleteRecursively(file);
+
+            try {
+                return FileSystemUtils.deleteRecursively(file);
+            } catch (IOException e) {
+                return false;
+            }
         } else {
             try {
-                if (!file.exists())
-                    return false;
-                Files.delete(file.toPath());
+                if (Files.notExists(file))
+                    return true;
+                Files.delete(file);
             } catch (IOException exception) {
                 return false;
             }
@@ -82,7 +95,7 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean rename(FileMetaDataDTO metaData, String name) {
-        File file = BASE_PATH.resolve(metaData.getAbsolutePath()).toFile();
+        File file = getPathFromMetaData(metaData).toFile();
         File destination = BASE_PATH
                 .resolve(metaData.getPath())
                 .resolve(name)
@@ -92,8 +105,8 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean move(FileMetaDataDTO source, FileMetaDataDTO target) {
-        Path moveFromPath = BASE_PATH.resolve(source.getAbsolutePath());
-        Path moveToPath = BASE_PATH.resolve(target.getAbsolutePath());
+        Path moveFromPath = getPathFromMetaData(source);
+        Path moveToPath = getPathFromMetaData(target);
         try {
             Files.move(moveFromPath, moveToPath);
         } catch (IOException e) {
@@ -104,13 +117,19 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean copy(FileMetaDataDTO source, FileMetaDataDTO target) {
-        Path copyFromPath = BASE_PATH.resolve(source.getAbsolutePath());
-        Path copyToPath = BASE_PATH.resolve(target.getAbsolutePath());
+        Path copyFromPath = getPathFromMetaData(source);
+        Path copyToPath = getPathFromMetaData(target);
         try {
             Files.copy(copyFromPath, copyToPath);
         } catch (IOException e) {
             return false;
         }
         return true;
+    }
+
+    private Path getPathFromMetaData(FileMetaDataDTO metaData) {
+        return Paths.get(BASE_PATH.toString(),
+                String.valueOf(metaData.getUserId()),
+                metaData.getAbsolutePath());
     }
 }
