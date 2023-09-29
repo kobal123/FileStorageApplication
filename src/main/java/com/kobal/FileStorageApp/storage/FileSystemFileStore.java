@@ -127,6 +127,11 @@ public class FileSystemFileStore implements FileStorageService {
         return true;
     }
 
+    @Override
+    public boolean createDirectory(FileMetaDataDTO fileMetaDataDTO) {
+        return false;
+    }
+
     private Path getPathFromMetaData(FileMetaDataDTO metaData) {
         return Paths.get(BASE_PATH.toString(),
                 String.valueOf(metaData.getUserId()),
