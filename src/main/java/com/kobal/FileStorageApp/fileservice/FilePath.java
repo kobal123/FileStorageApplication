@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 public class FilePath {
     private final List<String> segments = new ArrayList<>();
@@ -27,12 +28,26 @@ public class FilePath {
         return new FilePath().addPartRaw(s);
     }
 
+    public static String ofRaw(String s) {
+        StringJoiner joiner = new StringJoiner("/","/","");
+        if (s == null)
+            return joiner.toString();
+
+        String[] parts = s.split("/");
+        for (String part : parts) {
+            if (part.length() != 0)
+                joiner.add(part);
+        }
+        return joiner.toString();
+    }
+
     public FilePath addPartEncoded(String s) {
         if (s == null || s.length() == 0)
             return this;
         String[] parts = s.split("/");
         for (String part : parts) {
-            segments.add(URLEncoder.encode(part, StandardCharsets.UTF_8).replace("+", "%20"));
+            if (part.length() != 0)
+                segments.add(URLEncoder.encode(part, StandardCharsets.UTF_8).replace("+", "%20"));
         }
         return this;
     }
@@ -42,7 +57,8 @@ public class FilePath {
             return this;
         String[] parts = s.split("/");
         for (String part : parts) {
-            segments.add(URLDecoder.decode(part.replace("%20", "+"), StandardCharsets.UTF_8));
+            if (part.length() != 0)
+                segments.add(URLDecoder.decode(part.replace("%20", "+"), StandardCharsets.UTF_8));
         }
         return this;
     }
@@ -50,20 +66,23 @@ public class FilePath {
     public FilePath addPartRaw(String s) {
         if (s == null || s.length() == 0)
             return this;
-        segments.add(s);
+        String[] parts = s.split("/");
+        for (String part : parts) {
+            if (part.length() != 0) {
+                segments.add(part);
+            }
+        }
         return this;
     }
 
     public FilePath addPartRaw(FilePath filePath) {
-        addPartRaw(filePath.toString());
-        return this;
+        return addPartRaw(filePath.toString());
     }
 
 
     public FilePath addPartRawCopy(String s) {
-
         return new FilePath()
-                .addPartRaw(this.toString())
+                .addPartRaw(String.join("/",segments))
                 .addPartRaw(s);
     }
     public FilePath addPartRawCopy(FilePath filePath) {
@@ -108,6 +127,10 @@ public class FilePath {
 
     @Override
     public String toString() {
-        return String.join("/",segments);
+        StringJoiner joiner = new StringJoiner("/","/","");
+        for (String segment : segments) {
+            joiner.add(segment);
+        }
+        return joiner.toString();
     }
 }
