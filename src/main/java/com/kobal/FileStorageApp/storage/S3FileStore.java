@@ -37,4 +37,9 @@ public class S3FileStore implements FileStorageService {
     public boolean copy(FileMetaDataDTO source, FileMetaDataDTO target) {
         return false;
     }
+
+    @Override
+    public boolean createDirectory(FileMetaDataDTO fileMetaDataDTO) {
+        return false;
+    }
 }
