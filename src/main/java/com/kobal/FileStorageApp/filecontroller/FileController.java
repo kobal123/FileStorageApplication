@@ -8,7 +8,8 @@ import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import com.kobal.FileStorageApp.fileservice.FilePath;
 import com.kobal.FileStorageApp.fileservice.FileService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.hc.core5.net.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +22,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,23 +31,24 @@ import java.util.List;
 @RequestMapping("/")
 public class FileController {
     private final FileService fileService;
+    private final Logger logger = LoggerFactory.getLogger(FileController.class);
 
     public FileController(FileService fileService) {
         this.fileService = fileService;
     }
-    @GetMapping("")
-    String redirectToHome() {
-        return "redirect:/home";
-    }
+//    @GetMapping("")
+//    String redirectToHome() {
+//        return "redirect:/home";
+//    }
 
     @PostMapping("/upload/**")
     String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFile, HttpServletRequest request, Model model) {
-        if (multipartFile.isEmpty())
-            throw new UserFileException("File cannot be empty");
 
         String fileName = multipartFile.getOriginalFilename();
-        if (fileName == null)
+        if (fileName == null) {
+            logger.warn("User %s tried to upload a file with null value as file name".formatted(principal.getName()));
             throw new UserFileBadRequestException("File name cannot be empty");
+        }
 
 
         FilePath filePath = getFilePathFromRequest(request);
@@ -60,55 +60,52 @@ public class FileController {
         return "fragments/file-table-row :: table-row";
     }
     @DeleteMapping(value = "/delete/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
+    List<FileMetaDataDTO> deleteFiles(Principal principal, @RequestBody List<String> fileNames, HttpServletRequest request) {
         if (fileNames.isEmpty())
             return Collections.emptyList();
 
         FilePath filePath = getFilePathFromRequest(request);
-        List<String> failedDeletions = fileService.deleteFilesInDirectory(principal, filePath, fileNames);
+        List<FileMetaDataDTO> failedDeletions = fileService.deleteFilesInDirectory(principal, filePath, fileNames);
         return failedDeletions;
     }
 
     @PostMapping(value = "/move/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> move(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
+    List<FileMetaDataDTO> move(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
         if (fileNames.isEmpty())
             return Collections.emptyList();
-
-
         FilePath sourceDirectoryPath = getFilePathFromRequest(request);
         FilePath targetDirectoryPath = new FilePath(targetDirectory);
-
-        List<String> failedMove = fileService.moveFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
+        List<FileMetaDataDTO> failedMove = fileService.moveFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
         return failedMove;
     }
 
 
     @PutMapping(value = "/copy/**", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<String> copy(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
+    List<FileMetaDataDTO> copy(Principal principal, @RequestBody List<String> fileNames, @RequestBody String targetDirectory, HttpServletRequest request) {
         if (fileNames.isEmpty())
             return Collections.emptyList();
 
         FilePath sourceDirectoryPath = getFilePathFromRequest(request);
         FilePath targetDirectoryPath = new FilePath(targetDirectory);
 
-        List<String> failedCopy = fileService.copyFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
+        List<FileMetaDataDTO> failedCopy = fileService.copyFilesToDirectory(principal, sourceDirectoryPath, targetDirectoryPath, fileNames);
         return failedCopy;
     }
 
     @GetMapping("/home/**")
-    String index(Principal principal, Model model, HttpServletRequest request) throws URISyntaxException{
+    String index(Principal principal, Model model, HttpServletRequest request){
         FilePath filePath = getFilePathFromRequest(request);
         List<FileMetaDataDTO> files = fileService.getFilesInDirectory(principal, filePath);
 
         model.addAttribute("files", files);
-        URI folder = new URIBuilder()
-                .appendPath("home")
-                .appendPath(filePath.toString())
-                .build();
-        URI uploadURI = new URIBuilder()
-                .appendPath("upload")
-                .appendPath(filePath.toString())
-                .build();
+        String folder = new FilePath()
+                .addPartRaw("home")
+                .addPartRaw(filePath)
+                .toString();
+        String uploadURI = new FilePath()
+                .addPartRaw("upload")
+                .addPartRaw(filePath)
+                .toString();
         model.addAttribute("folderURL", folder);
         model.addAttribute("uploadURL", uploadURI);
 
@@ -126,7 +123,7 @@ public class FileController {
         FilePath filePath = getFilePathFromRequest(request);
         FileMetaDataDTO metaData= fileService
                 .getFileMetaDataByPath(principal, filePath)
-                .orElseThrow(() -> new UserFileNotFoundException("File was not found."));
+                .orElseThrow(() -> new UserFileNotFoundException("Could not find file with path %s".formatted(filePath)));
 
 
 
@@ -138,7 +135,8 @@ public class FileController {
                     outputStream.write(buffer, 0, bytesRead);
                 }
             } catch (Exception e) {
-                throw new UserFileException("There was an error downloading the requested file");
+                logger.error("Failed to download file. %s".formatted(e));
+                throw new UserFileException("There was an error downloading the requested file with path %s".formatted(filePath));
             }
         };
         HttpHeaders httpHeaders = new HttpHeaders();
