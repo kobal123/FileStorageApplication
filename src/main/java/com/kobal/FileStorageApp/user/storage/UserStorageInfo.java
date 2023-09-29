@@ -10,4 +10,5 @@ public record UserStorageInfo(@Id
                               Long id,
                               @OneToOne
                               AppUser user,
-                              Long sizeInBytes) { }
+                              Long sizeInBytes,
+                              Long storageLimitInBytes) { }
