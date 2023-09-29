@@ -11,7 +11,7 @@ class FilePathTest {
     void testAddPart() {
         //given
         FilePath underTest = new FilePath();
-        String expectedPath = "some/%20/path";
+        String expectedPath = "/some/%20/path";
         int expectedSize = 3;
 
         //when
@@ -32,7 +32,7 @@ class FilePathTest {
     void testConstructorWithPathInput() {
         //given
         FilePath underTest = new FilePath("some/ /path");
-        String expectedPath = "some/%20/path";
+        String expectedPath = "/some/%20/path";
 
         //when
         String actual = underTest.toString();
@@ -46,7 +46,7 @@ class FilePathTest {
     void getParent() {
         //given
         FilePath underTest = new FilePath();
-        String expectedParentPath = "some/%20";
+        String expectedParentPath = "/some/%20";
 
         //when
         String actual = underTest.addPartEncoded("some")
@@ -105,8 +105,15 @@ class FilePathTest {
 
         // then
         assertNotSame(filePath, copy);
-        assertEquals(copy.toString(), "abc/ ");
-        assertEquals(filePath.toString(), "abc");
+        assertEquals(copy.toString(), "/abc/ ");
+        assertEquals(filePath.toString(), "/abc");
+    }
+
+    @Test
+    void ofRaw() {
+        String expected = "/";
+        String actual = FilePath.ofRaw(null);
+        assertEquals(expected, actual);
     }
 
 }
