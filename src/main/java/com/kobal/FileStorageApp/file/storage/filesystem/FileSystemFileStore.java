@@ -1,7 +1,8 @@
-package com.kobal.FileStorageApp.storage;
+package com.kobal.FileStorageApp.file.storage.filesystem;
 
-import com.kobal.FileStorageApp.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
+import com.kobal.FileStorageApp.file.storage.FileStorageService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
@@ -10,9 +11,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
 @Service
 @ConditionalOnProperty(

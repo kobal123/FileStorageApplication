@@ -1,6 +1,6 @@
-package com.kobal.FileStorageApp.fileservice;
+package com.kobal.FileStorageApp.file.service;
 
-import com.kobal.FileStorageApp.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
@@ -12,10 +12,10 @@ public interface FileService {
 
 
 
-    FileMetaDataDTO uploadFile(Principal principal, FilePath path, MultipartFile file);
+    Optional<FileMetaDataDTO> uploadFile(Principal principal, FilePath path, MultipartFile file);
 
     InputStream download(Principal principal, FilePath path);
-    void createDirectory(Principal principal, FilePath directoryPath);
+    boolean createDirectory(Principal principal, FilePath directoryPath);
     List<FileMetaDataDTO> getFilesInDirectory(Principal principal, FilePath path);
 
     List<FileMetaDataDTO> deleteFilesInDirectory(Principal principal, FilePath directory, List<String> files);
@@ -25,4 +25,6 @@ public interface FileService {
     List<FileMetaDataDTO> copyFilesToDirectory(Principal principal, FilePath from, FilePath to, List<String> fileNames);
 
     Optional<FileMetaDataDTO> getFileMetaDataByPath(Principal principal, FilePath filePath);
+
+    List<FileMetaDataDTO> findFilesWithName(Principal principal, String filename);
 }

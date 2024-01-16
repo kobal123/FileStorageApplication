@@ -1,5 +1,6 @@
-package com.kobal.FileStorageApp.fileservice;
+package com.kobal.FileStorageApp.service;
 
+import com.kobal.FileStorageApp.file.service.FilePath;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,7 +1,7 @@
-package com.kobal.FileStorageApp;
+package com.kobal.FileStorageApp.file.model.filemetadata;
 
-import com.kobal.FileStorageApp.fileservice.FilePath;
-import com.kobal.FileStorageApp.user.AppUser;
+import com.kobal.FileStorageApp.file.service.FilePath;
+import com.kobal.FileStorageApp.user.model.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

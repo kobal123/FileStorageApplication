@@ -1,4 +1,4 @@
-package com.kobal.FileStorageApp.storage;
+package com.kobal.FileStorageApp.file.storage.filesystem;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

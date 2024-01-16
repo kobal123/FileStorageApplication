@@ -1,4 +1,4 @@
-package com.kobal.FileStorageApp.fileservice;
+package com.kobal.FileStorageApp.file.service;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;

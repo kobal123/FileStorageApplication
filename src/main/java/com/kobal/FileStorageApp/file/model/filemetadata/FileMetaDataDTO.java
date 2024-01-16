@@ -1,4 +1,4 @@
-package com.kobal.FileStorageApp;
+package com.kobal.FileStorageApp.file.model.filemetadata;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

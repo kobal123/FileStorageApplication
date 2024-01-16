@@ -1,10 +1,10 @@
-package com.kobal.FileStorageApp.storage.google;
+package com.kobal.FileStorageApp.file.storage.google;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.*;
-import com.kobal.FileStorageApp.FileMetaDataDTO;
-import com.kobal.FileStorageApp.storage.FileStorageService;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.storage.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;

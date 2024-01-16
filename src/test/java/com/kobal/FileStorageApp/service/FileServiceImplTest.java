@@ -1,12 +1,14 @@
-package com.kobal.FileStorageApp.fileservice;
+package com.kobal.FileStorageApp.service;
 
-import com.kobal.FileStorageApp.FileMetaData;
-import com.kobal.FileStorageApp.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.service.FilePath;
+import com.kobal.FileStorageApp.file.service.FileServiceImpl;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaData;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
-import com.kobal.FileStorageApp.storage.FileMetaDataRepository;
-import com.kobal.FileStorageApp.storage.FileStorageService;
-import com.kobal.FileStorageApp.user.AppUser;
+import com.kobal.FileStorageApp.file.persistence.FileMetaDataRepository;
+import com.kobal.FileStorageApp.file.storage.FileStorageService;
+import com.kobal.FileStorageApp.user.model.AppUser;
 import com.kobal.FileStorageApp.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,10 +77,11 @@ class FileServiceImplTest {
                 .thenReturn(Optional.of(directoryMetaData));
 
         // when
-        FileMetaDataDTO fileMetaDataDTO = fileService.uploadFile(principal, existingDirectoryPath, file);
+        Optional<FileMetaDataDTO> fileMetaDataDTO = fileService.uploadFile(principal, existingDirectoryPath, file);
 
         // then
-        assertEquals(fileMetaDataDTO.getPath(), directoryMetaData.getAbsolutePath());
+        assertTrue(fileMetaDataDTO.isPresent());
+        assertEquals(fileMetaDataDTO.get().getPath(), directoryMetaData.getAbsolutePath());
     }
 
     @Test

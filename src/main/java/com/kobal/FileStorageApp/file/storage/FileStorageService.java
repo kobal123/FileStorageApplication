@@ -1,6 +1,6 @@
-package com.kobal.FileStorageApp.storage;
+package com.kobal.FileStorageApp.file.storage;
 
-import com.kobal.FileStorageApp.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import java.io.InputStream;
 
 public interface FileStorageService {

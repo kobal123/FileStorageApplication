@@ -1,18 +1,19 @@
-package com.kobal.FileStorageApp.filecontroller;
+package com.kobal.FileStorageApp.file.filecontroller;
 
 
-import com.kobal.FileStorageApp.FileMetaDataDTO;
+import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
-import com.kobal.FileStorageApp.fileservice.FilePath;
-import com.kobal.FileStorageApp.fileservice.FileService;
+import com.kobal.FileStorageApp.file.service.FilePath;
+import com.kobal.FileStorageApp.file.service.FileService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.AntPathMatcher;
@@ -36,10 +37,20 @@ public class FileController {
     public FileController(FileService fileService) {
         this.fileService = fileService;
     }
-//    @GetMapping("")
-//    String redirectToHome() {
-//        return "redirect:/home";
-//    }
+    @GetMapping("")
+    String redirectToHome() {
+        return "redirect:/home";
+    }
+
+
+    @GetMapping("/search")
+    String searchFiles(Principal principal, @RequestParam("filename") String filename, Model model) {
+
+        List<FileMetaDataDTO> files = fileService.findFilesWithName(principal, filename);
+
+        model.addAttribute("files", files);
+        return "fragments/search-results";
+    }
 
     @PostMapping("/upload/**")
     String uploadFile(Principal principal, @RequestParam("file") MultipartFile multipartFile, HttpServletRequest request, Model model) {
@@ -93,7 +104,7 @@ public class FileController {
     }
 
     @GetMapping("/home/**")
-    String index(Principal principal, Model model, HttpServletRequest request){
+    String index(Principal principal, Authentication authentication, Model model, HttpServletRequest request){
         FilePath filePath = getFilePathFromRequest(request);
         List<FileMetaDataDTO> files = fileService.getFilesInDirectory(principal, filePath);
 
@@ -114,7 +125,6 @@ public class FileController {
             return "fragments/file-table :: file-table";
         }
         return "index";
-
     }
 
     @GetMapping("/download/**")
