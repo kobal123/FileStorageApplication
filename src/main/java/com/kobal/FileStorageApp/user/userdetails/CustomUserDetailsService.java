@@ -1,6 +1,6 @@
 package com.kobal.FileStorageApp.user.userdetails;
 
-import com.kobal.FileStorageApp.user.AppUser;
+import com.kobal.FileStorageApp.user.model.AppUser;
 import com.kobal.FileStorageApp.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +21,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.debug("Loading user with name '%s'".formatted(username));
-        return userRepository.getUserByName(username)
+        AppUser user = userRepository.getUserByName(username)
                 .orElseThrow(() -> {
                     logger.warn("Failed to load user with name '%s'".formatted(username));
                     return new UsernameNotFoundException(String.format("Could not find user with name '%s'", username));
                 });
+        return new CustomUserDetails(user);
     }
 }
