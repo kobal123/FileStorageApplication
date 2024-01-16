@@ -1,9 +1,10 @@
-package com.kobal.FileStorageApp.user;
+package com.kobal.FileStorageApp.user.model;
 
+import com.kobal.FileStorageApp.user.OAuthProvider;
 import com.kobal.FileStorageApp.user.role.Role;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,8 +12,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "AppUser")
-public class AppUser implements UserDetails {
+@Table(name = "AppUser", indexes = {@Index(columnList = "name")})
+public class AppUser {
 
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Id
@@ -23,10 +24,14 @@ public class AppUser implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
     @ManyToMany(fetch = FetchType.EAGER)
     private Set<Role> roles = new HashSet<>();
+
+    @Column(nullable = true)
+    @Enumerated(EnumType.STRING)
+    private OAuthProvider oauthProvider;
 
     public AppUser(String name, String email, String password) {
         this.name = name;
@@ -57,8 +62,6 @@ public class AppUser implements UserDetails {
         roles.add(role);
     }
 
-
-
     public AppUser() {}
 
     public Long getId() {
@@ -77,39 +80,10 @@ public class AppUser implements UserDetails {
         this.name = name;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return new ArrayList<>(roles);
-    }
-
     public String getPassword() {
         return password;
     }
 
-    @Override
-    public String getUsername() {
-        return String.valueOf(id);
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 
     public void setPassword(String password) {
         this.password = password;
