@@ -27,6 +27,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/")
@@ -63,10 +64,13 @@ public class FileController {
 
 
         FilePath filePath = getFilePathFromRequest(request);
-        FileMetaDataDTO metaDataDTO =  fileService.uploadFile(principal, filePath, multipartFile);
+        Optional<FileMetaDataDTO> metaDataDTO =  fileService.uploadFile(principal, filePath, multipartFile);
+        if (metaDataDTO.isEmpty()) {
+            throw new UserFileException("There was an error while uploading the file.");
+        }
 
         List<FileMetaDataDTO> addedFiles = new ArrayList<>();
-        addedFiles.add(metaDataDTO);
+        addedFiles.add(metaDataDTO.get());
         model.addAttribute("files", addedFiles);
         return "fragments/file-table-row :: table-row";
     }
