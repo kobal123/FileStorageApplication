@@ -28,12 +28,12 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean upload(FileMetaDataDTO metaData, InputStream inputStream) {
-        File file = getPathFromMetaData(metaData).toFile();
+        File file = getFullPathFromMetaData(metaData).toFile();
 
         boolean wasCreated;
         try {
             wasCreated = file.createNewFile();
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
             throw new UserFileException("Failed to upload file.");
         }
 
@@ -56,25 +56,26 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public InputStream download(FileMetaDataDTO metaData) {
-        File file = getPathFromMetaData(metaData).toFile();
+        Path filepath = getFullPathFromMetaData(metaData);
+        File file = filepath.toFile();
+        if (file.isDirectory()) {
+            throw new UserFileException("Cannot directly download directory");
+        }
         try {
-            return Files.newInputStream(file.toPath());
+            return Files.newInputStream(filepath);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            return InputStream.nullInputStream();
         }
     }
 
     @Override
     public boolean delete(FileMetaDataDTO metaData) {
-        Path file = getPathFromMetaData(metaData);
+        Path file = getFullPathFromMetaData(metaData);
         boolean isDirectory = metaData.isDirectory();
         if (file.toFile().isDirectory() != isDirectory) // should never happen??
             return false;
 
-
-
         if (isDirectory) {
-
             try {
                 return FileSystemUtils.deleteRecursively(file);
             } catch (IOException e) {
@@ -94,20 +95,29 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean rename(FileMetaDataDTO metaData, String name) {
-        File file = getPathFromMetaData(metaData).toFile();
-        File destination = BASE_PATH
-                .resolve(metaData.getPath())
-                .resolve(name)
-                .toFile();
-        return file.renameTo(destination);
+        Path filepath = getFullPathFromMetaData(metaData);
+        Path destination = getPathFromMetaData(metaData).resolve(name);
+
+        if (destination.toFile().exists())
+            return false;
+        try {
+            Files.move(filepath, destination);
+            return true;
+        } catch (IOException e) {
+            System.out.println(e);
+            return false;
+        }
     }
 
     @Override
     public boolean move(FileMetaDataDTO source, FileMetaDataDTO target) {
-        Path moveFromPath = getPathFromMetaData(source);
-        Path moveToPath = getPathFromMetaData(target);
+        Path moveFromPath = getFullPathFromMetaData(source);
+        Path moveToPath = getFullPathFromMetaData(target);
+        // if file is currently being downloaded moving could result
+        // in an exception thrown.
+
         try {
-            Files.move(moveFromPath, moveToPath);
+            Files.move(moveFromPath, moveToPath.resolve(source.getName()));
         } catch (IOException e) {
             return false;
         }
@@ -116,10 +126,10 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean copy(FileMetaDataDTO source, FileMetaDataDTO target) {
-        Path copyFromPath = getPathFromMetaData(source);
-        Path copyToPath = getPathFromMetaData(target);
+        Path copyFromPath = getFullPathFromMetaData(source);
+        Path copyToPath = getFullPathFromMetaData(target);
         try {
-            Files.copy(copyFromPath, copyToPath);
+            Files.copy(copyFromPath, copyToPath.resolve(source.getName()));
         } catch (IOException e) {
             return false;
         }
@@ -128,12 +138,37 @@ public class FileSystemFileStore implements FileStorageService {
 
     @Override
     public boolean createDirectory(FileMetaDataDTO fileMetaDataDTO) {
-        return false;
+        Path newDirectoryPath = getFullPathFromMetaData(fileMetaDataDTO);
+
+        try {
+            Files.createDirectory(newDirectoryPath);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
-    private Path getPathFromMetaData(FileMetaDataDTO metaData) {
+    /**
+     *  Returns a path to the file including the file name. The file is not guaranteed to exist.
+     *
+     * @param metaData Specifies the file
+     * @return Path to the file including the file name
+     */
+    public Path getFullPathFromMetaData(FileMetaDataDTO metaData) {
         return Paths.get(BASE_PATH.toString(),
                 String.valueOf(metaData.getUserId()),
                 metaData.getAbsolutePath());
+    }
+
+    /**
+     *  Returns a path to the file not including the file name. The file is not guaranteed to exist.
+     *
+     * @param metaData Specifies the file
+     * @return Path to the file not including the file name.
+     */
+    public Path getPathFromMetaData(FileMetaDataDTO metaData) {
+        return Paths.get(BASE_PATH.toString(),
+                String.valueOf(metaData.getUserId()),
+                metaData.getPath());
     }
 }
