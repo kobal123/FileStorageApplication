@@ -1,5 +1,7 @@
 package com.kobal.FileStorageApp.file.model.filemetadata;
 
+import com.kobal.FileStorageApp.file.service.FilePath;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,7 +24,7 @@ public class FileMetaDataDTO {
         this.modified = modified;
         this.isDirectory = isDirectory;
         this.uuid = uuid;
-        this.absolutePath = path + "/" + name;
+        this.absolutePath = new FilePath().addPartRaw(path).addPartRaw(name).toString();
     }
 
     public String getAbsolutePath() {

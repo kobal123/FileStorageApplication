@@ -3,7 +3,7 @@ package com.kobal.FileStorageApp.configuration.dev;
 import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.file.persistence.FileMetaDataRepository;
 import com.kobal.FileStorageApp.file.storage.FileStorageService;
-import com.kobal.FileStorageApp.user.UserRepository;
+import com.kobal.FileStorageApp.user.persistence.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
