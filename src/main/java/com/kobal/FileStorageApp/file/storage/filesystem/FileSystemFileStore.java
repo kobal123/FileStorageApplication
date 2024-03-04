@@ -17,14 +17,13 @@ import java.nio.file.*;
 @ConditionalOnProperty(
         value="storage.current",
         havingValue = "filesystem",
-        matchIfMissing = true)
+        matchIfMissing = false)
 public class FileSystemFileStore implements FileStorageService {
     private final Path BASE_PATH;
 
     public FileSystemFileStore(FileSystemStorageConfiguration fileSystemStorageConfiguration) {
         this.BASE_PATH = fileSystemStorageConfiguration.getRoot();
     }
-
 
     @Override
     public boolean upload(FileMetaDataDTO metaData, InputStream inputStream) {
