@@ -1,49 +1,58 @@
 package com.kobal.FileStorageApp.user.model;
 
-import com.kobal.FileStorageApp.user.OAuthProvider;
+import com.kobal.FileStorageApp.user.OAuthIssuer;
 import com.kobal.FileStorageApp.user.role.Role;
+import com.kobal.FileStorageApp.user.storage.UserStorageInfo;
 import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "AppUser", indexes = {@Index(columnList = "name")})
+@Table(name = "AppUser", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"issuer", "subject"})
+})
 public class AppUser {
 
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Id
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String name;
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String email;
 
-    @Column(nullable = true)
-    private String password;
     @ManyToMany(fetch = FetchType.EAGER)
     private Set<Role> roles = new HashSet<>();
+    private String subject;
 
-    @Column(nullable = true)
+    @OneToOne(fetch = FetchType.LAZY)
+    private UserStorageInfo userStorageInfo;
+
     @Enumerated(EnumType.STRING)
-    private OAuthProvider oauthProvider;
+    private OAuthIssuer issuer;
 
-    public AppUser(String name, String email, String password) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
+    public String getSubject() {
+        return subject;
     }
 
-    public AppUser(Long id, String name, String email, String password) {
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+
+    public OAuthIssuer getIssuer() {
+        return issuer;
+    }
+
+    public void setIssuer(OAuthIssuer issuer) {
+        this.issuer = issuer;
+    }
+
+    public AppUser() {}
+    public AppUser(Long id, String email, OAuthIssuer issuer, String sub) {
         this.id = id;
-        this.name = name;
         this.email = email;
-        this.password = password;
+        this.issuer = issuer;
+        this.subject = sub;
     }
 
     public String getEmail() {
@@ -62,8 +71,6 @@ public class AppUser {
         roles.add(role);
     }
 
-    public AppUser() {}
-
     public Long getId() {
         return id;
     }
@@ -72,20 +79,4 @@ public class AppUser {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

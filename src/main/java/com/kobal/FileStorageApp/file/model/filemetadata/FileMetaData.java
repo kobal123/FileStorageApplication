@@ -38,7 +38,7 @@ public class FileMetaData{
     @Column(nullable = false)
     private Boolean isDirectory;
 
-    @Column(nullable = false, length = 2500)
+    @Column(nullable = false, length = 300)
     private String path;
 
     @JoinColumn(nullable = false)
@@ -139,7 +139,7 @@ public class FileMetaData{
     public String getAbsolutePath()  {
         return new FilePath()
                 .addPartRaw(path)
-                .addPartEncoded(name)
+                .addPartRaw(name)
                 .toString();
     }
 
