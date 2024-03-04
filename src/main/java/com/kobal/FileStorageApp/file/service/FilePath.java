@@ -102,13 +102,12 @@ public class FilePath {
         return new FilePath().addPartRaw(filePath.toString());
     }
 
-    public static FilePath inSegmentRange(int from, int to, FilePath in) {
+    private FilePath inSegmentRange(int to) {
         FilePath filePath = new FilePath();
-        int max = Math.min(in.getSize(), to);
-        int min = Math.max(0, from);
 
-        for (int i = min; i < max; i++) {
-            filePath.addPartEncoded(in.getSegment(i));
+
+        for (int i = 0; i < to; i++) {
+            filePath.addPartRaw(segments.get(i));
         }
         return filePath;
     }
@@ -118,7 +117,21 @@ public class FilePath {
     }
 
     public String getFileName() {
-        return segments.get(segments.size() - 1);
+
+        return segments.size() > 0 ? segments.get(segments.size() - 1) : "/";
+    }
+
+    public String getPath() {
+
+//        return segments.get(segments.size() - 1);
+        int size = segments.size();
+        if (size == 0) {
+            return "";
+        } else if (size == 1) {
+            return "/";
+        }
+
+        return inSegmentRange(size - 1).toString();
     }
 
     public int getSize() {

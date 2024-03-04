@@ -117,4 +117,31 @@ class FilePathTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    void nameShouldBeSlashIfLengthIsZero() {
+        String expected = "/";
+        String actual = new FilePath().getFileName();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void pathShouldBeEmptyIfLengthIsZero() {
+        String expected = "";
+        String actual = new FilePath().getPath();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void pathShouldBeEmptyIfLengthIsOne() {
+        String expected = "";
+        String actual = new FilePath().getPath();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void path() {
+        String expected = "/a/b";
+        String actual = new FilePath().addPartRaw("/a/b/c").getPath();
+        assertEquals(expected, actual);
+    }
 }

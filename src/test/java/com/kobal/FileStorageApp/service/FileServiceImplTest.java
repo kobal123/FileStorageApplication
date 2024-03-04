@@ -8,8 +8,9 @@ import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import com.kobal.FileStorageApp.file.persistence.FileMetaDataRepository;
 import com.kobal.FileStorageApp.file.storage.FileStorageService;
+import com.kobal.FileStorageApp.user.OAuthIssuer;
 import com.kobal.FileStorageApp.user.model.AppUser;
-import com.kobal.FileStorageApp.user.UserRepository;
+import com.kobal.FileStorageApp.user.persistence.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,11 +23,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class FileServiceImplTest {
-
 
 
     @InjectMocks
@@ -39,7 +40,7 @@ class FileServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
-    AppUser user = new AppUser(1L, "user","user@email.com", "password");
+    AppUser user = new AppUser(1L, "user", OAuthIssuer.GOOGLE, "sub");
     Principal principal = () -> String.valueOf(user.getId());
 
     private final FilePath notExistingDirectoryPath = new FilePath()
@@ -55,7 +56,6 @@ class FileServiceImplTest {
     private final FileMetaData directoryMetaData = createMetaData(existingDirectoryPath, user, true);
 
 
-
     @Test
     void uploadFileShouldThrowFileNotFoundExceptionWhenDirectoryDoesNotExist() throws Exception {
 
@@ -65,7 +65,7 @@ class FileServiceImplTest {
 
         // when
         // then
-        assertThrows(UserFileNotFoundException.class, () -> fileService.uploadFile(principal, notExistingDirectoryPath, file));
+        assertThrows(UserFileNotFoundException.class, () -> fileService.uploadFile(user.getId(), notExistingDirectoryPath, file));
     }
 
     @Test
@@ -73,11 +73,14 @@ class FileServiceImplTest {
         // given
         MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), existingDirectoryPath.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
                 .thenReturn(Optional.of(directoryMetaData));
 
         // when
-        Optional<FileMetaDataDTO> fileMetaDataDTO = fileService.uploadFile(principal, existingDirectoryPath, file);
+        Optional<FileMetaDataDTO> fileMetaDataDTO = fileService.uploadFile(user.getId(), existingDirectoryPath, file);
 
         // then
         assertTrue(fileMetaDataDTO.isPresent());
@@ -86,21 +89,26 @@ class FileServiceImplTest {
 
     @Test
     void downloadShouldThrowFileNotFoundExceptionWhenDirectoryDoesNotExist() {
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), notExistingDirectoryPath.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(user.getId(),
+                        notExistingDirectoryPath.getPath(),
+                        notExistingDirectoryPath.getFileName()))
                 .thenReturn(Optional.empty());
-        assertThrows(UserFileNotFoundException.class, () -> fileService.download(principal, notExistingDirectoryPath));
+        assertThrows(UserFileNotFoundException.class, () -> fileService.download(user.getId(), notExistingDirectoryPath));
     }
 
     @Test
     void createDirectoryShouldThrowUserFileExceptionIfDirectoryAlreadyExists() {
         // given
         Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), existingDirectoryPath.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
                 .thenReturn(Optional.of(directoryMetaData));
 
         // when
         // then
-        assertThrows(UserFileException.class, () -> fileService.createDirectory(principal, existingDirectoryPath));
+        assertThrows(UserFileException.class, () -> fileService.createDirectory(user.getId(), existingDirectoryPath));
     }
 
     @Test
@@ -109,12 +117,15 @@ class FileServiceImplTest {
         FilePath pathToExistingFile = new FilePath().addPartEncoded("path").addPartEncoded("to_file");
         FileMetaData file = createMetaData(pathToExistingFile, user, false);
         Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), pathToExistingFile.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        pathToExistingFile.getPath(),
+                        pathToExistingFile.getFileName()))
                 .thenReturn(Optional.of(file));
 
         // when
         // then
-        assertThrows(UserFileException.class, () -> fileService.createDirectory(principal, pathToExistingFile));
+        assertThrows(UserFileException.class, () -> fileService.createDirectory(user.getId(), pathToExistingFile));
     }
 
     @Test
@@ -122,24 +133,30 @@ class FileServiceImplTest {
         // given
         FilePath pathToExistingFile = new FilePath().addPartEncoded("path").addPartEncoded("to_file");
         FileMetaData file = createMetaData(pathToExistingFile, user, false);
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), pathToExistingFile.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        pathToExistingFile.getPath(),
+                        pathToExistingFile.getFileName()))
                 .thenReturn(Optional.of(file));
 
         // when
         // then
-        assertThrows(UserFileException.class, () -> fileService.getFilesInDirectory(principal, pathToExistingFile));
+        assertThrows(UserFileException.class, () -> fileService.getFilesInDirectory(user.getId(), new FilePath(file.getAbsolutePath())));
     }
 
     @Test
     void getFilesInDirectoryShouldThrowUsrFileNotFoundExceptionIfPathDoesNotExist() {
         // given
         FilePath pathToNotExistingFile = new FilePath().addPartEncoded("path").addPartEncoded("to_file");
-        Mockito.when(fileMetaDataRepository.findByUserIdAndAbsolutePath(user.getId(), pathToNotExistingFile.toString()))
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        pathToNotExistingFile.getPath(),
+                        pathToNotExistingFile.getFileName()))
                 .thenReturn(Optional.empty());
 
         // when
         // then
-        assertThrows(UserFileNotFoundException.class, () -> fileService.getFilesInDirectory(principal, pathToNotExistingFile));
+        assertThrows(UserFileNotFoundException.class, () -> fileService.getFilesInDirectory(user.getId(), pathToNotExistingFile));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.kobal.FileStorageApp.file.service;
 
+import com.kobal.FileStorageApp.exceptions.UserStorageSpaceExecption;
 import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaData;
 import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
@@ -7,16 +8,18 @@ import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
 import com.kobal.FileStorageApp.file.persistence.FileMetaDataRepository;
 import com.kobal.FileStorageApp.file.storage.FileStorageService;
 import com.kobal.FileStorageApp.user.model.AppUser;
-import com.kobal.FileStorageApp.user.UserRepository;
+import com.kobal.FileStorageApp.user.persistence.UserRepository;
+import com.kobal.FileStorageApp.user.storage.UserStorageInfo;
+import com.kobal.FileStorageApp.user.storage.UserStorageInfoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -28,20 +31,22 @@ public class FileServiceImpl implements FileService {
     private final FileMetaDataRepository fileMetaDataRepository;
     private final FileStorageService fileStorageService;
     private final UserRepository userRepository;
+    private final UserStorageInfoRepository userStorageInfoRepository;
     private final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
 
-    public FileServiceImpl(FileMetaDataRepository fileMetaDataRepository, FileStorageService fileStorageService, UserRepository userRepository) {
+    public FileServiceImpl(FileMetaDataRepository fileMetaDataRepository, FileStorageService fileStorageService, UserRepository userRepository, UserStorageInfoRepository userStorageInfoRepository) {
         this.fileMetaDataRepository = fileMetaDataRepository;
         this.fileStorageService = fileStorageService;
         this.userRepository = userRepository;
+        this.userStorageInfoRepository = userStorageInfoRepository;
     }
 
     @Override
-    public Optional<FileMetaDataDTO> uploadFile(Principal principal, FilePath uploadFilePath, MultipartFile file) {
-       AppUser user = userRepository.findById(Long.valueOf(principal.getName()))
-               .orElseThrow(() -> new RuntimeException("user not found"));
+    public Optional<FileMetaDataDTO> uploadFile(Long userId, FilePath uploadFilePath, MultipartFile file) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("user not found"));
         FileMetaData parentFolder = fileMetaDataRepository
-                .findByUserIdAndAbsolutePath(user.getId(), uploadFilePath.toString())
+                .findByUserIdAndPathAndName(user.getId(), uploadFilePath.getPath(), uploadFilePath.getFileName() )
                 .orElseThrow(() -> new UserFileNotFoundException("Folder does not exist"));
 
 
@@ -90,9 +95,9 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public InputStream download(Principal principal, FilePath path) {
-        Long userId = Long.valueOf(principal.getName());
-        FileMetaData fileMetaData = fileMetaDataRepository.findByUserIdAndAbsolutePath(userId, path.toString())
+    public InputStream download(Long userId, FilePath path) {
+        FileMetaData fileMetaData = fileMetaDataRepository
+                .findByUserIdAndPathAndName(userId, path.getPath(), path.getFileName())
                 .orElseThrow(() -> new UserFileNotFoundException("Could not find file"));
 
         FileMetaDataDTO dto = dtoFromMetaData(fileMetaData, userId);
@@ -112,22 +117,27 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public boolean createDirectory(Principal principal, FilePath directoryToCreate) {
-        AppUser user = userRepository.findById(Long.valueOf(principal.getName()))
+    public boolean createDirectory(Long userId, FilePath directoryToCreate) {
+        AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("user not found"));
 
         Optional<FileMetaData> directoryOptional = fileMetaDataRepository
-                .findByUserIdAndAbsolutePath(user.getId(), directoryToCreate.toString());
+                .findByUserIdAndPathAndName(user.getId(),
+                        directoryToCreate.getPath(),
+                        directoryToCreate.getFileName());
 
 
         if (directoryOptional.isPresent()) {
-            throw new UserFileException("A file already exists with name '%s'".formatted(directoryOptional.get().getName()));
+            throw new UserFileException("A file already exists with name '%s'"
+                    .formatted(directoryOptional.get().getName()));
         }
 
         FilePath parent = directoryToCreate.getParent();
         FileMetaData directory = fileMetaDataRepository
-                .findByUserIdAndAbsolutePath(user.getId(), parent.toString())
-                .orElseThrow(() -> new UserFileNotFoundException("The folder in which you want to create a new folder does not exist."));
+                .findByUserIdAndPathAndName(user.getId(),
+                        parent.getPath(),
+                        parent.getFileName())
+                .orElseThrow(() -> new UserFileNotFoundException("The folder in which you want to create a new folder does not exist. Path:%s ".formatted(parent)));
 
         if (!directory.isDirectory()) {
             throw new UserFileException("Could not create directory. The path provided was a regular file, not a directory");
@@ -141,7 +151,7 @@ public class FileServiceImpl implements FileService {
         file.setIsDirectory(true);
         file.setPath(directory.getAbsolutePath());
         file.setModified(LocalDateTime.now(ZoneId.of("UTC")));
-
+        file.setSize(0L);
         // this is not atomic. Somehow solve it?
         try {
             fileMetaDataRepository.save(file);
@@ -154,24 +164,22 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public List<FileMetaDataDTO> getFilesInDirectory(Principal principal, FilePath path) {
+    public List<FileMetaDataDTO> getFilesInDirectory(Long userId, FilePath path) {
         String directoryPath = path.toString();
-        Long userId = Long.valueOf(principal.getName());
 
-        Optional<FileMetaData> directoryOptional = fileMetaDataRepository.findByUserIdAndAbsolutePath(userId, directoryPath);
+        Optional<FileMetaData> directoryOptional = fileMetaDataRepository
+                .findByUserIdAndPathAndName(userId, path.getPath(), path.getFileName());
         if (directoryOptional.isEmpty()) {
             // TODO: log
             throw new UserFileNotFoundException("Could not find file with path '%s'".formatted(path));
         }
 
         FileMetaData directory = directoryOptional.get();
-
         if (!directory.isDirectory()) {
-            throw new UserFileException("");
+            throw new UserFileException("The path '%s' is not a directory.".formatted(path));
         }
-
         return fileMetaDataRepository
-                .getSubFoldersByUserIdAndPath(userId, directory.getAbsolutePath())
+                .getSubDirectoriesByParentAndUserId(directory, userId)
                 .stream()
                 .map(metaData -> dtoFromMetaData(metaData, userId))
                 .toList();
@@ -179,23 +187,21 @@ public class FileServiceImpl implements FileService {
 
 
     @Override
-    public List<FileMetaDataDTO> deleteFilesInDirectory(Principal principal, FilePath directory, List<String> fileNames) {
-        AppUser user = userRepository.findById(Long.valueOf(principal.getName()))
-                .orElseThrow(() -> new RuntimeException("user not found"));
-        List<FileMetaData> filesToDelete = fileMetaDataRepository.findByUserIdAndPathAndNames(user.getId(),directory.toString(), fileNames);
+    public List<FileMetaDataDTO> deleteFilesInDirectory(Long userId, FilePath directory, List<String> fileNames) {
+        List<FileMetaData> filesToDelete = fileMetaDataRepository.findByUserIdAndPathAndNames(userId, directory.toString(), fileNames);
         List<FileMetaData> successfullyDeletedFiles = filesToDelete.stream()
-                .filter(metaData -> fileStorageService.delete(dtoFromMetaData(metaData, user.getId())))
+                .filter(metaData -> fileStorageService.delete(dtoFromMetaData(metaData, userId)))
                 .toList();
         fileMetaDataRepository.deleteAllInBatch(successfullyDeletedFiles);
 
         return successfullyDeletedFiles.stream()
-                .map(metaData -> dtoFromMetaData(metaData, user.getId()))
+                .map(metaData -> dtoFromMetaData(metaData, userId))
                 .toList();
     }
 
     @Override
-    public List<FileMetaDataDTO> copyFilesToDirectory(Principal principal, FilePath fromDirectory, FilePath toDirectory, List<String> fileNames) {
-        AppUser user = userRepository.findById(Long.valueOf(principal.getName()))
+    public List<FileMetaDataDTO> copyFilesToDirectory(Long userId, FilePath fromDirectory, FilePath toDirectory, List<String> fileNames) {
+        AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("Could not find user."));
 
         List<String> pathsToFiles = fileNames.stream()
@@ -204,10 +210,10 @@ public class FileServiceImpl implements FileService {
                 .toList();
 
         List<FileMetaData> filesToCopy = fileMetaDataRepository
-                .getFilesByUserIdAndPathStartingWith(user.getId(), pathsToFiles);
+                .getFilesByUserIdAndPaths(user.getId(), pathsToFiles);
 
         FileMetaData targetDirectory = fileMetaDataRepository
-                .getFileMetaDataByUserIdAndPath(Long.valueOf(user.getName()), toDirectory.toString())
+                .getFileMetaDataByUserIdAndPath(userId, toDirectory.toString())
                 .orElseThrow(() -> new UserFileNotFoundException("Could not find directory"));
 
         FileMetaDataDTO targetDirectoryDTO = dtoFromMetaData(targetDirectory, user.getId());
@@ -235,33 +241,38 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public Optional<FileMetaDataDTO> getFileMetaDataByPath(Principal principal, FilePath filePath) {
-        Long userId = Long.valueOf(principal.getName());
-        Optional<FileMetaData> dataOptional = fileMetaDataRepository.findByUserIdAndAbsolutePath(userId, filePath.toString());
+    public Optional<FileMetaDataDTO> getFileMetaDataByPath(Long userId, FilePath filePath) {
+//        Long userId = Long.valueOf(userId.getName());
+        Optional<FileMetaData> dataOptional = fileMetaDataRepository.findByUserIdAndPathAndName(userId, filePath.getPath(), filePath.getFileName());
         return dataOptional
                 .map(metaData -> dtoFromMetaData(metaData, userId));
     }
 
     @Override
-    public List<FileMetaDataDTO> findFilesWithName(Principal principal, String filename) {
+    public List<FileMetaDataDTO> searchFiles(Long userId, String filename, boolean directoryOnly) {
         Pageable pageable = Pageable.ofSize(10);
-        Long userId = Long.valueOf(principal.getName());
-        return fileMetaDataRepository.findByUserIdAndNameContaining(userId, filename, pageable)
+        return fileMetaDataRepository.findByUserIdAndNameContaining(userId, filename, pageable, directoryOnly)
                 .stream()
                 .map(fileMetaData -> dtoFromMetaData(fileMetaData, userId))
                 .toList();
     }
 
     @Override
-    public List<FileMetaDataDTO> moveFilesToDirectory(Principal principal, FilePath fromDirectory, FilePath toDirectory, List<String> fileNames) {
-        Long userId = Long.valueOf(principal.getName());
+    public List<FileMetaDataDTO> moveFilesToDirectory(Long userId, FilePath fromDirectory, FilePath toDirectory, List<String> fileNames) {
+
         List<String> pathsToFiles = fileNames.stream()
                 .map(fromDirectory::addPartRawCopy)
                 .map(FilePath::toString)
                 .toList();
 
         List<FileMetaData> filesToMove = fileMetaDataRepository
-                .getFilesByUserIdAndPathStartingWith(userId, pathsToFiles);
+                .getFilesByUserIdAndPaths(userId, pathsToFiles);
+
+        Long requiredSpace = filesToMove.stream().map(FileMetaData::getSize).reduce(0L, Long::sum);
+        UserStorageInfo storageInfo = userStorageInfoRepository.getByUserId(userId);
+        if (requiredSpace > storageInfo.availableSpaceInBytes()) {
+            throw new UserStorageSpaceExecption("Not enough space available.");
+        }
 
         FileMetaData targetDirectory = fileMetaDataRepository
                 .getFileMetaDataByUserIdAndPath(userId, toDirectory.toString())
@@ -269,8 +280,8 @@ public class FileServiceImpl implements FileService {
 
         FileMetaDataDTO targetDirectoryDTO = dtoFromMetaData(targetDirectory, userId);
         List<FileMetaData> successfullyMovedFiles = filesToMove.stream()
-                        .filter(metaData -> fileStorageService.move(dtoFromMetaData(metaData, userId), targetDirectoryDTO))
-                        .toList();
+                .filter(metaData -> fileStorageService.move(dtoFromMetaData(metaData, userId), targetDirectoryDTO))
+                .toList();
 
         List<Long> movedFilesIds = successfullyMovedFiles.stream().map(FileMetaData::getId).toList();
         fileMetaDataRepository.updateFilePathsByIdAndUserId(userId, movedFilesIds, targetDirectoryDTO.getAbsolutePath());
@@ -278,5 +289,20 @@ public class FileServiceImpl implements FileService {
         return successfullyMovedFiles.stream()
                 .map(metaData -> dtoFromMetaData(metaData, userId))
                 .toList();
+    }
+
+    @Transactional
+    @Override
+    public void rename(Long userId, FilePath pathToFile, String newName) {
+//        String oldAbsoluteFilePath = pathToFile.toString();
+        FileMetaData file = fileMetaDataRepository
+                .findByUserIdAndPathAndName(userId, pathToFile.getPath(), pathToFile.getFileName())
+                .orElseThrow(() -> new UserFileNotFoundException("File does not exist"));
+        String newPath = new FilePath()
+                        .addPartRaw(pathToFile.getPath())
+                        .addPartRaw(newName).toString();
+        fileMetaDataRepository.updateFilePath(userId, file.getAbsolutePath(), newPath);
+        file.setName(newName);
+        fileMetaDataRepository.save(file);
     }
 }
