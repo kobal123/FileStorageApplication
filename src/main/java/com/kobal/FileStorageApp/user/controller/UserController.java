@@ -29,14 +29,9 @@ public class UserController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("register")
     public ResponseEntity<Void> register(JwtAuthenticationToken authentication) {
-        long start = System.currentTimeMillis();
-
         Jwt jwt = ((Jwt)authentication.getPrincipal());
         AppUser user = userService.register(jwt);
-        long finish = System.currentTimeMillis();
-        long timeElapsed = finish - start;
-
-        logger.info("register endpoint, user id: %s, time taken %s".formatted(user.getId(), timeElapsed));
+        logger.debug("register endpoint, user id: %s".formatted(user.getId()));
         return ResponseEntity.ok().build();
     }
 }
