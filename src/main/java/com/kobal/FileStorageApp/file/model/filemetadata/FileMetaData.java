@@ -48,6 +48,16 @@ public class FileMetaData{
     @ManyToOne(fetch = FetchType.LAZY)
     private FileMetaData parent;
 
+    private Boolean starred = false;
+
+    public Boolean isStarred() {
+        return starred;
+    }
+
+    public void setIsStarred(Boolean starred) {
+        this.starred = starred;
+    }
+
     public UUID getFileUUID() {
         return fileUUID;
     }

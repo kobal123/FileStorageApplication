@@ -97,8 +97,15 @@ public class GoogleCloudFileStore implements FileStorageService {
     @Override
     public boolean copy(FileMetaDataDTO source, FileMetaDataDTO target) {
         // check if blob exists
-        // create new blob
-        // copy blob.
+        String sourceFileName = getFileName(source);
+        String targetFileName = getFileName(target);
+        Blob sourceBlob = storage.get(BlobId.of(bucketName, sourceFileName));
+        if (sourceBlob == null) {
+            throw new RuntimeException();
+        }
+
+        BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, targetFileName).build();
+        storage.copy(Storage.CopyRequest.of(sourceBlob.getBlobId(), blobInfo));
 
         return false;
     }
