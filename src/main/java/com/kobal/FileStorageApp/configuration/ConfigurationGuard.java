@@ -16,7 +16,7 @@ public class ConfigurationGuard implements InitializingBean {
     @Value("${storage.current:#{null}}")
     private String storageType;
     private final Logger logger = LoggerFactory.getLogger(ConfigurationGuard.class);
-    private static final String[] POSSIBLE_VALUES = {"filesystem", "google-cloud"};
+    private static final String[] POSSIBLE_VALUES = {"filesystem", "google-cloud", "test"};
 
     @PostConstruct
     public void afterPropertiesSet() {

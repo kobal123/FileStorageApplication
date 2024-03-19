@@ -1,5 +1,6 @@
 package com.kobal.FileStorageApp.service;
 
+import com.kobal.FileStorageApp.file.service.BatchOperationResult;
 import com.kobal.FileStorageApp.file.service.FilePath;
 import com.kobal.FileStorageApp.file.service.FileServiceImpl;
 import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaData;
@@ -11,6 +12,8 @@ import com.kobal.FileStorageApp.file.storage.FileStorageService;
 import com.kobal.FileStorageApp.user.OAuthIssuer;
 import com.kobal.FileStorageApp.user.model.AppUser;
 import com.kobal.FileStorageApp.user.persistence.UserRepository;
+import com.kobal.FileStorageApp.user.storage.UserStorageInfo;
+import com.kobal.FileStorageApp.user.storage.UserStorageInfoRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,9 +23,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,17 +36,18 @@ class FileServiceImplTest {
 
     @InjectMocks
     private FileServiceImpl fileService;
-
     @Mock
     private FileMetaDataRepository fileMetaDataRepository;
     @Mock
     private FileStorageService fileStorageService;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private UserStorageInfoRepository userStorageInfoRepository;
+    private Long createdMetadataCount = 0L;
 
     AppUser user = new AppUser(1L, "user", OAuthIssuer.GOOGLE, "sub");
-    Principal principal = () -> String.valueOf(user.getId());
-
+    UserStorageInfo userStorageInfo = new UserStorageInfo(0L, user, 0L);
     private final FilePath notExistingDirectoryPath = new FilePath()
             .addPartEncoded("path")
             .addPartEncoded("to")
@@ -53,11 +58,12 @@ class FileServiceImplTest {
             .addPartEncoded("to")
             .addPartDecoded("existingDirectory");
 
-    private final FileMetaData directoryMetaData = createMetaData(existingDirectoryPath, user, true);
-
+    private final FileMetaData existingDirectoryMetaData = createMetaData(existingDirectoryPath, user, true);
+    private final FileMetaDataDTO existingDirectoryMetaDataDTO = FileMetaDataDTO
+            .fromFileMetaData(user.getId(), existingDirectoryMetaData);
 
     @Test
-    void uploadFileShouldThrowFileNotFoundExceptionWhenDirectoryDoesNotExist() throws Exception {
+    void uploadFileShouldThrowFileNotFoundExceptionWhenDirectoryDoesNotExist() {
 
         // given
         MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
@@ -69,7 +75,7 @@ class FileServiceImplTest {
     }
 
     @Test
-    void uploadFileShouldPassWhenDirectoryExists() throws Exception {
+    void uploadFileShouldPassWhenDirectoryExists() {
         // given
         MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -77,14 +83,13 @@ class FileServiceImplTest {
                         user.getId(),
                         existingDirectoryPath.getPath(),
                         existingDirectoryPath.getFileName()))
-                .thenReturn(Optional.of(directoryMetaData));
+                .thenReturn(Optional.of(existingDirectoryMetaData));
 
         // when
-        Optional<FileMetaDataDTO> fileMetaDataDTO = fileService.uploadFile(user.getId(), existingDirectoryPath, file);
+        FileMetaDataDTO fileMetaDataDTO = fileService.uploadFile(user.getId(), existingDirectoryPath, file);
 
         // then
-        assertTrue(fileMetaDataDTO.isPresent());
-        assertEquals(fileMetaDataDTO.get().getPath(), directoryMetaData.getAbsolutePath());
+        assertEquals(fileMetaDataDTO.getPath(), existingDirectoryMetaData.getAbsolutePath());
     }
 
     @Test
@@ -104,7 +109,7 @@ class FileServiceImplTest {
                         user.getId(),
                         existingDirectoryPath.getPath(),
                         existingDirectoryPath.getFileName()))
-                .thenReturn(Optional.of(directoryMetaData));
+                .thenReturn(Optional.of(existingDirectoryMetaData));
 
         // when
         // then
@@ -160,11 +165,70 @@ class FileServiceImplTest {
     }
 
     @Test
-    void deleteFilesInDirectoryShouldThrowFileNotFoundExceptionIfPathDoesNotExist() {
+    void deleteFilesInDirectoryShouldPass() {
+
+        // given
+        BatchOperationResult expected = new BatchOperationResult(List.of(existingDirectoryMetaDataDTO), List.of());
+        Boolean deleteSuccess = true;
+        List<FilePath> filePaths = List.of(existingDirectoryPath);
+        List<String> fileNames = List.of(existingDirectoryPath.getFileName());
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndNames(
+                user.getId(),
+                existingDirectoryPath.getPath(),
+                fileNames)).thenReturn(List.of(existingDirectoryMetaData));
+
+        Mockito.when(fileStorageService.delete(existingDirectoryMetaDataDTO))
+                .thenReturn(deleteSuccess);
+       BatchOperationResult actual = fileService.deleteFilesInDirectory(user.getId(), filePaths);
+        assertEquals(expected, actual);
     }
 
     @Test
-    void copyFilesToDirectory() {
+    void copyFilesToDirectoryShouldPass() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        FileMetaData testFileMetadata = createMetaData(testFilepath, user, false);
+        FileMetaDataDTO testFileMetadataDTO = FileMetaDataDTO.fromFileMetaData(user.getId(), testFileMetadata);
+        BatchOperationResult expected = new BatchOperationResult(List.of(testFileMetadataDTO), List.of());
+
+        Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfo);
+        Mockito.when(fileStorageService.copy(testFileMetadataDTO, existingDirectoryMetaDataDTO))
+                .thenReturn(true);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
+                .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndNames(
+                        user.getId(),
+                        testFilepath.getPath(),
+                        List.of(testFilepath.getFileName())))
+                .thenReturn(List.of(testFileMetadata));
+
+        // when
+        BatchOperationResult actual = fileService.copyFilesToDirectory(user.getId(), filePaths, existingDirectoryPath);
+
+        // then
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void copyFilesToDirectoryShouldFailIfTargetDoesNotExist() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        notExistingDirectoryPath.getPath(),
+                        notExistingDirectoryPath.getFileName()))
+                .thenReturn(Optional.empty());
+        // when
+        // then
+        assertThrows(UserFileNotFoundException.class, () ->
+                fileService.copyFilesToDirectory(user.getId(), filePaths, notExistingDirectoryPath));
     }
 
     @Test
@@ -177,6 +241,9 @@ class FileServiceImplTest {
 
 
     private FileMetaData createMetaData(FilePath path, AppUser user, boolean isDirectory) {
-        return new FileMetaData(1L, path.getFileName(), 1000L, LocalDateTime.now(), isDirectory, path.getParent().toString());
+        FileMetaData fileMetaData = new FileMetaData(createdMetadataCount++, path.getFileName(), 1000L, LocalDateTime.now(), isDirectory, path.getPath());
+        fileMetaData.setFileUUID(UUID.randomUUID());
+        fileMetaData.setUser(user);
+        return fileMetaData;
     }
 }

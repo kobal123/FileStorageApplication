@@ -26,7 +26,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class FileServiceImpl implements FileService {
@@ -170,15 +172,21 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public BatchOperationResult deleteFilesInDirectory(Long userId,
-                                                       List<FilePath> files) {
-//        List<FileMetaData> filesToDelete = fileMetaDataRepository.findByUserIdAndPathAndNames(
-//                userId,
-//                files.toString(),
-//                fileNames);
+                                                       List<FilePath> filePaths) {
+        if (filePaths.isEmpty()) {
+            throw new UserFileBadRequestException("Must specify at least one file to copy");
+        }
+        Set<String> paths = filePaths.stream().map(FilePath::getPath).collect(Collectors.toSet());
+        if (paths.size() > 1) {
+            throw new UserFileBadRequestException("Cannot delete files from 2 or more folders at the same time.");
+        }
 
-        List<FileMetaData> filesToDelete = fileMetaDataRepository.getFilesByUserIdAndPaths(
+        String path = filePaths.get(0).getPath();
+
+        List<FileMetaData> filesToDelete = fileMetaDataRepository.findByUserIdAndPathAndNames(
                 userId,
-                files.stream().map(FilePath::toString).toList());
+                path,
+                filePaths.stream().map(FilePath::getFileName).toList());
 
         List<FileMetaData> successfullyDeletedFiles = filesToDelete.stream()
                 .filter(metaData -> fileStorageService.delete(FileMetaDataDTO.fromFileMetaData(userId, metaData)))
@@ -204,8 +212,11 @@ public class FileServiceImpl implements FileService {
         if (filePaths.isEmpty()) {
             throw new UserFileBadRequestException("Must specify at least one file to copy");
         }
-        // it would be better if I could copy from any path to a directory,
-        // but the query would be very slow. Might need to rethink this.
+        Set<String> paths = filePaths.stream().map(FilePath::getPath).collect(Collectors.toSet());
+        if (paths.size() > 1) {
+            throw new UserFileBadRequestException("Cannot copy files from 2 or more folders at the same time");
+        }
+
         String path = filePaths.get(0).getPath();
 
         FileMetaData targetDirectory = fileMetaDataRepository
@@ -278,12 +289,23 @@ public class FileServiceImpl implements FileService {
     @Override
     public BatchOperationResult moveFilesToDirectory(Long userId,
                                                      FilePath fromDirectory,
-                                                     List<FilePath> files) {
+                                                     List<FilePath> filePaths) {
 
-        List<FileMetaData> filesToMove = fileMetaDataRepository.getFilesByUserIdAndPaths(
+        if (filePaths.isEmpty()) {
+            throw new UserFileBadRequestException("Must specify at least one file to copy");
+        }
+        Set<String> paths = filePaths.stream().map(FilePath::getPath).collect(Collectors.toSet());
+        if (paths.size() > 1) {
+            throw new UserFileBadRequestException("Cannot move files from 2 or more folders at the same time.");
+        }
+
+        String path = filePaths.get(0).getPath();
+
+        List<FileMetaData> filesToMove = fileMetaDataRepository.findByUserIdAndPathAndNames(
                 userId,
-                files.stream().map(FilePath::toString).toList()
-        );
+                path,
+                filePaths.stream().map(FilePath::getFileName).toList());
+
 
         Long requiredSpace = filesToMove.stream().map(FileMetaData::getSize).reduce(0L, Long::sum);
         UserStorageInfo storageInfo = userStorageInfoRepository.getByUserId(userId);
@@ -292,7 +314,7 @@ public class FileServiceImpl implements FileService {
         }
 
         FileMetaData targetDirectory = fileMetaDataRepository
-                .getFileMetaDataByUserIdAndPath(userId, files.toString())
+                .getFileMetaDataByUserIdAndPath(userId, filePaths.toString())
                 .orElseThrow(() -> new UserFileNotFoundException("Could not find directory"));
 
         FileMetaDataDTO targetDirectoryDTO = FileMetaDataDTO.fromFileMetaData(userId, targetDirectory);

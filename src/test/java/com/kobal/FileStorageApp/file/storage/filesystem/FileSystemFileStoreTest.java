@@ -46,7 +46,8 @@ class FileSystemFileStoreTest {
                 1000L,
                 LocalDateTime.now(),
                 false,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
         //when
         boolean actual = fileSystemFileStore.upload(fileMetaData, FileInputStream.nullInputStream());
 
@@ -64,7 +65,8 @@ class FileSystemFileStoreTest {
                 1000L,
                 LocalDateTime.now(),
                 false,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
         byte[] fileContent = "File content".getBytes();
         Path file = createFileInUserDirectoryWithBytes("file.txt", fileContent);
 
@@ -86,7 +88,8 @@ class FileSystemFileStoreTest {
                 1000L,
                 LocalDateTime.now(),
                 false,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
         Path fileToDelete = createFileInUserDirectoryWithBytes(fileName, new byte[]{});
 
         //when
@@ -107,7 +110,8 @@ class FileSystemFileStoreTest {
                 1000L,
                 LocalDateTime.now(),
                 true,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
         Path directoryToDelete = Files.createDirectory(userRootDirectory.resolve(fileName));
         List<Path> files = List.of(
                 directoryToDelete.resolve("file1"),
@@ -133,7 +137,7 @@ class FileSystemFileStoreTest {
     @Test
     void renameShouldSucceed() {
         // given
-        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0l, false);
+        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0L, false);
         Path filepath = createFileInUserDirectoryWithBytes(dto.getName(), new byte[]{});
         String newName = "changedFileName";
 
@@ -150,7 +154,7 @@ class FileSystemFileStoreTest {
     @Test
     void renameShouldFailIfFileDoesNotExist() {
         // given
-        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0l, false);
+        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0L, false);
         String newName = "changedFileName";
 
         // when
@@ -164,7 +168,7 @@ class FileSystemFileStoreTest {
     void renameShouldFailIfFileAlreadyExistsWithName() {
         // given
         String newName = "changedFileName";
-        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0l, false);
+        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0L, false);
         Path toRename = createFileInUserDirectoryWithBytes(dto.getName(), new byte[]{});
         Path destination = createFileInUserDirectoryWithBytes(newName, new byte[]{});
 
@@ -178,7 +182,7 @@ class FileSystemFileStoreTest {
     @Test
     void moveShouldSucceedIfDestinationExists() {
         // given
-        FileMetaDataDTO source = createDTOWithRandomData(userId, 0l, true);
+        FileMetaDataDTO source = createDTOWithRandomData(userId, 0L, true);
         createFileInUserDirectoryWithBytes(source.getName(), new byte[]{});
 
         File destination = createDirectoryInUserDirectory(randomString()).toFile();
@@ -188,7 +192,8 @@ class FileSystemFileStoreTest {
                 0l,
                 LocalDateTime.now(),
                 true,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
 
 
         // when
@@ -201,7 +206,7 @@ class FileSystemFileStoreTest {
     @Test
     void copyShouldReturnTrueIfFileAndDestinationExists() {
         // given
-        FileMetaDataDTO source = createDTOWithRandomData(userId, 0l, true);
+        FileMetaDataDTO source = createDTOWithRandomData(userId, 0L, true);
         createFileInUserDirectoryWithBytes(source.getName(), new byte[]{});
 
         File destinationDirectory = createDirectoryInUserDirectory(randomString()).toFile();
@@ -211,7 +216,8 @@ class FileSystemFileStoreTest {
                 0l,
                 LocalDateTime.now(),
                 true,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
 
 
         // when
@@ -229,7 +235,7 @@ class FileSystemFileStoreTest {
     void createDirectoryShouldReturnFalseIfPathDoesNotExist() {
         // given
         String notExistingDirectory = randomString();
-        FileMetaDataDTO dto = createDTOWithRandomDataAtPath(userId, 0l, true, notExistingDirectory);
+        FileMetaDataDTO dto = createDTOWithRandomDataAtPath(userId, 0L, true, notExistingDirectory);
 
         // when
         boolean result = fileSystemFileStore.createDirectory(dto);
@@ -241,7 +247,7 @@ class FileSystemFileStoreTest {
     @Test
     void createDirectoryShouldReturnTrueIfPathExists() {
         // given
-        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0l, true);
+        FileMetaDataDTO dto = createDTOWithRandomData(userId, 0L, true);
         // when
         boolean result = fileSystemFileStore.createDirectory(dto);
 
@@ -279,7 +285,8 @@ class FileSystemFileStoreTest {
                 size,
                 LocalDateTime.now(),
                 isdirectory,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
     }
 
     private FileMetaDataDTO createDTOWithRandomDataAtPath(Long userId, Long size, boolean isdirectory, String path) {
@@ -290,7 +297,8 @@ class FileSystemFileStoreTest {
                 size,
                 LocalDateTime.now(),
                 isdirectory,
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                false);
     }
 
     private String randomString() {
