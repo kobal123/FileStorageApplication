@@ -4,6 +4,7 @@ import com.kobal.FileStorageApp.file.model.filemetadata.FileMetaDataDTO;
 import com.kobal.FileStorageApp.exceptions.UserFileBadRequestException;
 import com.kobal.FileStorageApp.exceptions.UserFileException;
 import com.kobal.FileStorageApp.exceptions.UserFileNotFoundException;
+import com.kobal.FileStorageApp.file.service.BatchOperationResult;
 import com.kobal.FileStorageApp.file.service.FilePath;
 import com.kobal.FileStorageApp.file.service.FileService;
 import com.kobal.FileStorageApp.user.service.UserService;
@@ -20,7 +21,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/file")
@@ -49,7 +49,6 @@ public class RestFileController {
                                           @RequestParam("path") String path){
         Long userId = userService.getUserIdFromJwt(token.getToken());
         FilePath filePath = new FilePath().addPartRaw(path);
-        System.out.println("FIle path " + filePath);
         fileService.createDirectory(userId, filePath);
     }
 
@@ -76,44 +75,41 @@ public class RestFileController {
         }
 
         FilePath filePath = new FilePath(directoryPath);
-        Optional<FileMetaDataDTO> metaDataDTO =  fileService.uploadFile(userId, filePath, multipartFile);
-        if (metaDataDTO.isEmpty()) {
-            throw new UserFileException("There was an error while uploading the file.");
-        }
-        return new ResponseEntity<>(metaDataDTO.get().getAbsolutePath(), HttpStatus.CREATED);
+        FileMetaDataDTO metaDataDTO = fileService.uploadFile(userId, filePath, multipartFile);
+
+        return new ResponseEntity<>(metaDataDTO.getAbsolutePath(), HttpStatus.CREATED);
     }
     @DeleteMapping(value = "/delete", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<FileMetaDataDTO> deleteFiles(JwtAuthenticationToken token,
-                                      @RequestBody List<String> fileNames,
-                                      @RequestBody String fromDirectory) {
+    BatchOperationResult deleteFiles(JwtAuthenticationToken token,
+                                     @RequestBody List<String> files) {
         Long userId = userService.getUserIdFromJwt(token.getToken());
-        FilePath filePath = FilePath.decode(fromDirectory);
-        return fileService.deleteFilesInDirectory(userId, filePath, fileNames);
+        List<FilePath> filePath = files.stream().map(FilePath::raw).toList();
+        return fileService.deleteFilesInDirectory(userId, filePath);
     }
 
     @PostMapping(value = "/move", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<FileMetaDataDTO> move(JwtAuthenticationToken token,
-                               @RequestBody List<String> fileNames,
-                               @RequestBody String targetDirectory,
-                               @RequestBody String sourceDirectory) {
+    BatchOperationResult move(JwtAuthenticationToken token,
+                               @RequestBody List<String> filePaths,
+                               @RequestBody String targetDirectory) {
         Long userId = userService.getUserIdFromJwt(token.getToken());
-        FilePath sourceDirectoryPath = new FilePath(sourceDirectory);
+//        FilePath sourceDirectoryPath = new FilePath(sourceDirectory);
+        List<FilePath> paths = filePaths.stream().map(FilePath::raw).toList();
         FilePath targetDirectoryPath = new FilePath(targetDirectory);
-        return fileService.moveFilesToDirectory(userId, sourceDirectoryPath, targetDirectoryPath, fileNames);
+        return fileService.moveFilesToDirectory(userId, targetDirectoryPath, paths);
     }
 
 
     @PutMapping(value = "/copy", produces = MediaType.APPLICATION_JSON_VALUE)
-    List<FileMetaDataDTO> copy(JwtAuthenticationToken token,
-                               @RequestBody List<String> fileNames,
-                               @RequestBody String targetDirectory,
-                               @RequestBody String sourceDirectory) {
+    BatchOperationResult copy(JwtAuthenticationToken token,
+                               @RequestBody List<String> filePaths,
+                               @RequestBody String targetDirectory) {
 
         Long userId = userService.getUserIdFromJwt(token.getToken());
-        FilePath sourceDirectoryPath = new FilePath(sourceDirectory);
+//        FilePath sourceDirectoryPath = new FilePath(sourceDirectory);
         FilePath targetDirectoryPath = new FilePath(targetDirectory);
+        List<FilePath> paths = filePaths.stream().map(FilePath::raw).toList();
 
-        return fileService.copyFilesToDirectory(userId, sourceDirectoryPath, targetDirectoryPath, fileNames);
+        return fileService.copyFilesToDirectory(userId, paths, targetDirectoryPath);
     }
 
     @ResponseStatus(HttpStatus.OK)
