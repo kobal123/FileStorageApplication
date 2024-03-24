@@ -288,8 +288,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public BatchOperationResult moveFilesToDirectory(Long userId,
-                                                     FilePath fromDirectory,
-                                                     List<FilePath> filePaths) {
+                                                     List<FilePath> filePaths, FilePath targetDirectoryPath) {
 
         if (filePaths.isEmpty()) {
             throw new UserFileBadRequestException("Must specify at least one file to copy");
@@ -300,6 +299,9 @@ public class FileServiceImpl implements FileService {
         }
 
         String path = filePaths.get(0).getPath();
+        FileMetaData targetDirectory = fileMetaDataRepository
+                .findByUserIdAndPathAndName(userId, targetDirectoryPath.getPath(), targetDirectoryPath.getFileName())
+                .orElseThrow(() -> new UserFileNotFoundException("Could not find directory"));
 
         List<FileMetaData> filesToMove = fileMetaDataRepository.findByUserIdAndPathAndNames(
                 userId,
@@ -313,9 +315,6 @@ public class FileServiceImpl implements FileService {
             throw new UserStorageSpaceExecption("Not enough space available.");
         }
 
-        FileMetaData targetDirectory = fileMetaDataRepository
-                .getFileMetaDataByUserIdAndPath(userId, filePaths.toString())
-                .orElseThrow(() -> new UserFileNotFoundException("Could not find directory"));
 
         FileMetaDataDTO targetDirectoryDTO = FileMetaDataDTO.fromFileMetaData(userId, targetDirectory);
         List<FileMetaData> successfullyMovedFiles = filesToMove.stream()

@@ -1,5 +1,6 @@
 package com.kobal.FileStorageApp.service;
 
+import com.kobal.FileStorageApp.exceptions.UserStorageSpaceExecption;
 import com.kobal.FileStorageApp.file.service.BatchOperationResult;
 import com.kobal.FileStorageApp.file.service.FilePath;
 import com.kobal.FileStorageApp.file.service.FileServiceImpl;
@@ -28,7 +29,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class FileServiceImplTest {
@@ -46,8 +48,11 @@ class FileServiceImplTest {
     private UserStorageInfoRepository userStorageInfoRepository;
     private Long createdMetadataCount = 0L;
 
-    AppUser user = new AppUser(1L, "user", OAuthIssuer.GOOGLE, "sub");
+    AppUser user = new AppUser(1L, "user00@gmail.com", OAuthIssuer.GOOGLE, "sub0");
     UserStorageInfo userStorageInfo = new UserStorageInfo(0L, user, 0L);
+    UserStorageInfo userStorageInfoNoSpaceAvailable = new UserStorageInfo(0L, user, 1000*1000*1000L);
+
+
     private final FilePath notExistingDirectoryPath = new FilePath()
             .addPartEncoded("path")
             .addPartEncoded("to")
@@ -67,8 +72,6 @@ class FileServiceImplTest {
 
         // given
         MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
-        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
         // when
         // then
         assertThrows(UserFileNotFoundException.class, () -> fileService.uploadFile(user.getId(), notExistingDirectoryPath, file));
@@ -77,6 +80,7 @@ class FileServiceImplTest {
     @Test
     void uploadFileShouldPassWhenDirectoryExists() {
         // given
+        String expected = existingDirectoryMetaData.getAbsolutePath();
         MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
         Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
@@ -84,12 +88,31 @@ class FileServiceImplTest {
                         existingDirectoryPath.getPath(),
                         existingDirectoryPath.getFileName()))
                 .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfo);
 
         // when
-        FileMetaDataDTO fileMetaDataDTO = fileService.uploadFile(user.getId(), existingDirectoryPath, file);
+        FileMetaDataDTO actual = fileService.uploadFile(user.getId(), existingDirectoryPath, file);
 
         // then
-        assertEquals(fileMetaDataDTO.getPath(), existingDirectoryMetaData.getAbsolutePath());
+        assertEquals(expected, actual.getPath());
+    }
+
+
+    @Test
+    void uploadFileFailIfNotEnoughSpaceAvailable() {
+        // given
+        MultipartFile file = new MockMultipartFile("file.txt", "file content".getBytes());
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
+                .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfoNoSpaceAvailable);
+
+        // when
+        // then
+        assertThrows(UserStorageSpaceExecption.class, () ->
+                fileService.uploadFile(user.getId(), existingDirectoryPath, file));
     }
 
     @Test
@@ -104,7 +127,6 @@ class FileServiceImplTest {
     @Test
     void createDirectoryShouldThrowUserFileExceptionIfDirectoryAlreadyExists() {
         // given
-        Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
                         user.getId(),
                         existingDirectoryPath.getPath(),
@@ -121,7 +143,7 @@ class FileServiceImplTest {
         // given
         FilePath pathToExistingFile = new FilePath().addPartEncoded("path").addPartEncoded("to_file");
         FileMetaData file = createMetaData(pathToExistingFile, user, false);
-        Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+//        Mockito.when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
                         user.getId(),
                         pathToExistingFile.getPath(),
@@ -214,6 +236,31 @@ class FileServiceImplTest {
         assertEquals(expected, actual);
     }
 
+@Test
+    void copyFilesToDirectoryShouldFailIfNotEnoughSpaceAvailable() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        FileMetaData testFileMetadata = createMetaData(testFilepath, user, false);
+        FileMetaDataDTO testFileMetadataDTO = FileMetaDataDTO.fromFileMetaData(user.getId(), testFileMetadata);
+
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfoNoSpaceAvailable);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
+                .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndNames(
+                        user.getId(),
+                        testFilepath.getPath(),
+                        List.of(testFilepath.getFileName())))
+                .thenReturn(List.of(testFileMetadata));
+        // when
+        // then
+        assertThrows(UserStorageSpaceExecption.class,
+                () -> fileService.copyFilesToDirectory(user.getId(), filePaths, existingDirectoryPath));
+    }
+
 
     @Test
     void copyFilesToDirectoryShouldFailIfTargetDoesNotExist() {
@@ -231,14 +278,76 @@ class FileServiceImplTest {
                 fileService.copyFilesToDirectory(user.getId(), filePaths, notExistingDirectoryPath));
     }
 
+
     @Test
-    void getFileMetaDataByPath() {
+    void moveFilesToDirectoryShouldPassIfTargetDirectoryExists() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        FileMetaData testFileMetadata = createMetaData(testFilepath, user, false);
+        FileMetaDataDTO testFileMetadataDTO = FileMetaDataDTO.fromFileMetaData(user.getId(), testFileMetadata);
+        BatchOperationResult expected = new BatchOperationResult(List.of(testFileMetadataDTO), List.of());
+
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfo);
+        Mockito.when(fileStorageService.move(testFileMetadataDTO, existingDirectoryMetaDataDTO))
+                .thenReturn(true);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
+                .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndNames(
+                        user.getId(),
+                        testFilepath.getPath(),
+                        List.of(testFilepath.getFileName())))
+                .thenReturn(List.of(testFileMetadata));
+
+        // when
+        BatchOperationResult actual = fileService.moveFilesToDirectory(user.getId(), filePaths, existingDirectoryPath);
+
+        // then
+        assertEquals(expected, actual);
+    }
+
+
+    @Test
+    void moveFilesToDirectoryShouldFailIfTargetDoesNotExist() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        notExistingDirectoryPath.getPath(),
+                        notExistingDirectoryPath.getFileName()))
+                .thenReturn(Optional.empty());
+        // when
+        // then
+        assertThrows(UserFileNotFoundException.class, () ->
+                fileService.moveFilesToDirectory(user.getId(), filePaths, notExistingDirectoryPath));
     }
 
     @Test
-    void moveFilesToDirectory() {
+    void moveFilesToDirectoryShouldFailIfNotEnoughSpaceAvailable() {
+        // given
+        FilePath testFilepath = FilePath.raw("a/b/c/file.txt");
+        List<FilePath> filePaths = List.of(testFilepath);
+        FileMetaData testFileMetadata = createMetaData(testFilepath, user, false);
+        Mockito.when(userStorageInfoRepository.getByUserId(user.getId())).thenReturn(userStorageInfoNoSpaceAvailable);
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndName(
+                        user.getId(),
+                        existingDirectoryPath.getPath(),
+                        existingDirectoryPath.getFileName()))
+                .thenReturn(Optional.of(existingDirectoryMetaData));
+        Mockito.when(fileMetaDataRepository.findByUserIdAndPathAndNames(
+                        user.getId(),
+                        testFilepath.getPath(),
+                        List.of(testFilepath.getFileName())))
+                .thenReturn(List.of(testFileMetadata));
+        // when
+        // then
+        assertThrows(UserStorageSpaceExecption.class,
+                () -> fileService.moveFilesToDirectory(user.getId(), filePaths, existingDirectoryPath));
     }
-
 
     private FileMetaData createMetaData(FilePath path, AppUser user, boolean isDirectory) {
         FileMetaData fileMetaData = new FileMetaData(createdMetadataCount++, path.getFileName(), 1000L, LocalDateTime.now(), isDirectory, path.getPath());

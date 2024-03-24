@@ -95,7 +95,7 @@ public class RestFileController {
 //        FilePath sourceDirectoryPath = new FilePath(sourceDirectory);
         List<FilePath> paths = filePaths.stream().map(FilePath::raw).toList();
         FilePath targetDirectoryPath = new FilePath(targetDirectory);
-        return fileService.moveFilesToDirectory(userId, targetDirectoryPath, paths);
+        return fileService.moveFilesToDirectory(userId, paths, targetDirectoryPath);
     }
 
 

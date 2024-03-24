@@ -17,7 +17,7 @@ public interface FileService {
 
     BatchOperationResult deleteFilesInDirectory(Long userId, List<FilePath> files);
 
-    BatchOperationResult moveFilesToDirectory(Long userId, FilePath target, List<FilePath> files);
+    BatchOperationResult moveFilesToDirectory(Long userId, List<FilePath> files, FilePath target);
 
     FileMetaDataDTO rename(Long userId, FilePath pathToFile, String newName);
 
