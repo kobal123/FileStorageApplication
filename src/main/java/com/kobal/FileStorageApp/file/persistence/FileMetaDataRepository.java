@@ -27,20 +27,9 @@ public interface FileMetaDataRepository extends JpaRepository<FileMetaData, Long
 
     Optional<FileMetaData> getFileMetaDataByUserIdAndPath(Long userId, String path);
 
-    //    @Query("""
-//            SELECT f FROM FileMetaData f
-//             WHERE CONCAT_WS('/', f.path, f.name) = CONCAT('/', :absolutePath)
-//            AND f.user.id = :userId
-//            """)
-    @Query("""
-            SELECT f FROM FileMetaData f
-            WHERE f.path = :path
-            AND f.name = :fileName
-            AND f.user.id = :userId
-            """)
-    Optional<FileMetaData> findByUserIdAndPathAndName(@Param("userId") Long userId,
-                                                      @Param("path") String path,
-                                                      @Param("fileName") String name);
+    Optional<FileMetaData> findByUserIdAndPathAndName(Long userId,
+                                                      String path,
+                                                      String name);
 
     @Query("""
                 SELECT f FROM FileMetaData f

@@ -9,19 +9,19 @@ import java.util.Optional;
 
 public interface FileService {
 
-    Optional<FileMetaDataDTO> uploadFile(Long userId, FilePath path, MultipartFile file);
+    FileMetaDataDTO uploadFile(Long userId, FilePath path, MultipartFile file);
 
     InputStream download(Long userId, FilePath path);
     boolean createDirectory(Long userId, FilePath directoryPath);
     List<FileMetaDataDTO> getFilesInDirectory(Long userId, FilePath path);
 
-    List<FileMetaDataDTO> deleteFilesInDirectory(Long userId, FilePath directory, List<String> files);
+    BatchOperationResult deleteFilesInDirectory(Long userId, List<FilePath> files);
 
-    List<FileMetaDataDTO> moveFilesToDirectory(Long userId, FilePath from, FilePath to, List<String> fileNames);
+    BatchOperationResult moveFilesToDirectory(Long userId, List<FilePath> files, FilePath target);
 
-    void rename(Long userId, FilePath pathToFile, String newName);
+    FileMetaDataDTO rename(Long userId, FilePath pathToFile, String newName);
 
-    List<FileMetaDataDTO> copyFilesToDirectory(Long userId, FilePath from, FilePath to, List<String> fileNames);
+    BatchOperationResult copyFilesToDirectory(Long userId, List<FilePath> files, FilePath targetDirectoryPath);
 
     Optional<FileMetaDataDTO> getFileMetaDataByPath(Long userId, FilePath filePath);
 

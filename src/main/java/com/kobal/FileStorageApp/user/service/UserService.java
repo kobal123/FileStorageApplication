@@ -75,7 +75,7 @@ public class UserService {
 
         UserStorageInfo storageInfo = new UserStorageInfo();
         storageInfo.setUser(user);
-        storageInfo.setSizeInBytes(0L);
+        storageInfo.setUsedBytes(0L);
 
         userStorageInfoRepository.save(storageInfo);
 

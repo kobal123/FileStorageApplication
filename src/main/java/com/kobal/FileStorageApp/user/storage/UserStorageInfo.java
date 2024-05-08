@@ -12,15 +12,15 @@ public final class UserStorageInfo {
     private Long id;
     @OneToOne
     private AppUser user;
-    private Long sizeInBytes;
+    private Long usedBytes;
     private final Long storageLimitInBytes = 1000 * 1000 * 1000L; // 1 GB;
 
     public void setUser(AppUser user) {
         this.user = user;
     }
 
-    public void setSizeInBytes(Long sizeInBytes) {
-        this.sizeInBytes = sizeInBytes;
+    public void setUsedBytes(Long usedBytes) {
+        this.usedBytes = usedBytes;
     }
 
 
@@ -29,10 +29,10 @@ public final class UserStorageInfo {
 
     public UserStorageInfo(Long id,
                            AppUser user,
-                           Long sizeInBytes) {
+                           Long usedBytes) {
         this.id = id;
         this.user = user;
-        this.sizeInBytes = sizeInBytes;
+        this.usedBytes = usedBytes;
     }
 
     @Id
@@ -46,7 +46,7 @@ public final class UserStorageInfo {
     }
 
     public Long sizeInBytes() {
-        return sizeInBytes;
+        return usedBytes;
     }
 
     public Long storageLimitInBytes() {
@@ -54,7 +54,7 @@ public final class UserStorageInfo {
     }
 
     public Long availableSpaceInBytes() {
-        return storageLimitInBytes - sizeInBytes;
+        return storageLimitInBytes - usedBytes;
     }
 
     @Override
@@ -64,13 +64,13 @@ public final class UserStorageInfo {
         var that = (UserStorageInfo) obj;
         return Objects.equals(this.id, that.id) &&
                 Objects.equals(this.user, that.user) &&
-                Objects.equals(this.sizeInBytes, that.sizeInBytes) &&
+                Objects.equals(this.usedBytes, that.usedBytes) &&
                 Objects.equals(this.storageLimitInBytes, that.storageLimitInBytes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, user, sizeInBytes, storageLimitInBytes);
+        return Objects.hash(id, user, usedBytes, storageLimitInBytes);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class UserStorageInfo {
         return "UserStorageInfo[" +
                 "id=" + id + ", " +
                 "user=" + user + ", " +
-                "sizeInBytes=" + sizeInBytes + ", " +
+                "sizeInBytes=" + usedBytes + ", " +
                 "storageLimitInBytes=" + storageLimitInBytes + ']';
     }
 

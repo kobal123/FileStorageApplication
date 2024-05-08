@@ -25,30 +25,30 @@ public class FileStorageCleanUp {
         this.fileStorageService = fileStorageService;
         this.userRepository = userRepository;
     }
-
-    @PreDestroy
-    private void cleanUp() {
-        var users = userRepository.findAll();
-        logger.debug("Starting local development storage cleanup");
-
-        for (var user : users ) {
-
-            var files = fileMetaDataRepository.getAllFilesByUserId(user.getId());
-            for (var file : files) {
-                logger.debug("Deleting file {}", file);
-
-                boolean failed = fileStorageService.delete(new FileMetaDataDTO(user.getId(),
-                        file.getName(),
-                        file.getPath(),
-                        file.getSize(),
-                        file.getModified(),
-                        file.isDirectory(),
-                        file.getFileUUID()));
-                if (failed) {
-                    logger.warn("Could not delete file {}", file);
-                }
-            }
-        }
-        logger.debug("Local development storage cleanup ended");
-    }
+//
+//    @PreDestroy
+//    private void cleanUp() {
+//        var users = userRepository.findAll();
+//        logger.debug("Starting local development storage cleanup");
+//
+//        for (var user : users ) {
+//
+//            var files = fileMetaDataRepository.getAllFilesByUserId(user.getId());
+//            for (var file : files) {
+//                logger.debug("Deleting file {}", file);
+//
+//                boolean failed = fileStorageService.delete(new FileMetaDataDTO(user.getId(),
+//                        file.getName(),
+//                        file.getPath(),
+//                        file.getSize(),
+//                        file.getModified(),
+//                        file.isDirectory(),
+//                        file.getFileUUID()));
+//                if (failed) {
+//                    logger.warn("Could not delete file {}", file);
+//                }
+//            }
+//        }
+//        logger.debug("Local development storage cleanup ended");
+//    }
 }
